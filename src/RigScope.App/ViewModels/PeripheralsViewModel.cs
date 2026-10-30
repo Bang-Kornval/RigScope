@@ -129,7 +129,7 @@ public sealed partial class PeripheralsViewModel : ObservableObject
         (true, true) => ("Keep it running", FindingStatus.Good),
         (true, null) => ("Check", FindingStatus.Unknown),
         (false, true) => ("Needed, but not running", FindingStatus.Warn),
-        _ => ("Not running", FindingStatus.Good),
+        _ => ("Nothing to do", FindingStatus.Good),
     };
 
     private static DeviceCard Card(PeripheralInfo p, PeripheralCatalogue catalogue)

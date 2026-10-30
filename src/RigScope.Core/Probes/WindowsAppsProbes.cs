@@ -97,7 +97,7 @@ public sealed class KnownAppsProbe : IProbe
         new("ghub", "Logitech G HUB", "rgb", ["lghub", "lghub_agent", "lghub_system_tray", "lghub_updater"], ["LGHUB", "lghub"]),
         new("steelseries", "SteelSeries GG", "rgb", ["SteelSeriesGG", "SteelSeriesEngine", "SteelSeriesGGEZ", "SteelSeriesSonar", "SteelSeriesPrism"], ["SteelSeriesGG", "SteelSeries"]),
         new("razer", "Razer Synapse", "rgb", ["RazerAppEngine", "Razer Synapse 3", "Razer Synapse Service", "RazerCentralService"], ["Razer"]),
-        new("armoury", "ASUS Armoury Crate", "rgb", ["ArmouryCrate", "ArmouryCrate.Service", "LightingService", "AsusCertService"], ["ArmouryCrate", "ArmourySocketServer"]),
+        new("armoury", "ASUS Armoury Crate", "rgb", ["ArmouryCrate", "ArmouryCrate.Service", "LightingService"], ["ArmouryCrate", "ArmourySocketServer"]),
         new("msicenter", "MSI Center / Mystic Light", "rgb", ["MSI.CentralServer", "MSI Center", "MysticLight", "LEDKeeper2"], ["MSI Center", "MSI.CentralServer"]),
         new("nzxt", "NZXT CAM", "rgb", ["NZXT CAM"], ["NZXT CAM", "NZXT.CAM"]),
         new("signalrgb", "SignalRGB", "rgb", ["SignalRgb", "SignalRgbLauncher"], ["SignalRGB"]),
