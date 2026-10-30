@@ -65,4 +65,18 @@ public class ReportTests
         Assert.Contains(@"C:\Users\Public", red);
         Assert.Equal(red, ReportBuilder.Redact(red, pc)); // idempotent
     }
+
+    [Fact]
+    public void Redaction_handles_json_escaped_paths()
+    {
+        var pc = FakePcs.IntelNvidiaDesktop();
+        pc.Games[0].InstallPath = @"C:\Users\someoneelse\Games\cs2";
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        pc.Games[1].InstallPath = profile + @"\Games\apex";
+        var json = ReportBuilder.Redact(Core.Snapshot.SnapshotJson.Serialize(pc), pc);
+        Assert.DoesNotContain("someoneelse", json);
+        Assert.DoesNotContain(profile.Replace(@"\", @"\\"), json, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(@"C:\\Users\\<you>", json);
+        Core.Snapshot.SnapshotJson.Deserialize(json); // still valid JSON
+    }
 }

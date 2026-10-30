@@ -9,4 +9,7 @@
     <Product>RigScope</Product>
     <Copyright>Copyright © 2026 Mikkel Kornval Christoffersen</Copyright>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
 </Project>

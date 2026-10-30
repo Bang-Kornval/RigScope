@@ -1,0 +1,27 @@
+<UserControl x:Class="RigScope.App.Views.ReportView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Text="Share report" Style="{StaticResource PageTitle}" />
+            <TextBlock Style="{StaticResource PageSubtitle}"
+                       Text="A summary you can paste into Discord, Reddit or a message when asking for help. Personal details are removed by default." />
+            <WrapPanel Margin="0,0,0,12">
+                <CheckBox Content="Remove personal details" IsChecked="{Binding Redact}" Margin="0,0,20,6"
+                          ToolTip="Removes your Windows user name, PC name, Steam account ids, hardware serial ids and email addresses." />
+                <CheckBox Content="Include what's already good" IsChecked="{Binding IncludeGood}" Margin="0,0,20,6" />
+                <CheckBox Content="Include myths" IsChecked="{Binding IncludeMyths}" Margin="0,0,20,6" />
+                <CheckBox Content="Include storage (after a scan)" IsChecked="{Binding IncludeStorage}" Margin="0,0,20,6" />
+            </WrapPanel>
+            <WrapPanel Margin="0,0,0,12">
+                <Button Content="Copy report" Command="{Binding CopyCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,6" />
+                <Button Content="Save as file…" Command="{Binding SaveCommand}" Margin="0,0,8,6" />
+                <Button Content="Save full snapshot for a bug report…" Command="{Binding SaveSnapshotCommand}" Margin="0,0,8,6" />
+                <TextBlock Text="{Binding Message}" VerticalAlignment="Center" Margin="8,0,0,6" Foreground="{StaticResource StatusGoodBrush}" />
+            </WrapPanel>
+        </StackPanel>
+        <TextBox Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" FontFamily="{StaticResource MonoFont}" FontSize="12.5"
+                 TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" Padding="12"
+                 AutomationProperties.Name="Report text" />
+    </DockPanel>
+</UserControl>

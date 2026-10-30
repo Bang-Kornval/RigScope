@@ -59,7 +59,7 @@ public static partial class ReportBuilder
         foreach (var f in list)
         {
             md.AppendLine($"- {(f.Status == FindingStatus.Warn ? "⚠ " : "")}{f.Title}: {f.Summary}");
-            if (detailed && f.Recommendation.Length > 0) md.AppendLine($"  - → {f.Recommendation}");
+            if (detailed && f.Recommendation.Length > 0) md.AppendLine($"  → {f.Recommendation}");
         }
         md.AppendLine();
     }
@@ -71,11 +71,18 @@ public static partial class ReportBuilder
         var machine = Environment.MachineName;
         var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-        if (profile.Length > 3) text = text.Replace(profile, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+        if (profile.Length > 3)
+        {
+            text = text.Replace(profile, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+            text = text.Replace(profile.Replace(@"\", @"\\"), "%USERPROFILE%", StringComparison.OrdinalIgnoreCase); // JSON-escaped
+        }
         text = UsersPath().Replace(text, @"C:\Users\<you>");
+        text = UsersPathJson().Replace(text, @"C:\\Users\\<you>");
         if (user.Length >= 3) text = Regex.Replace(text, $@"\b{Regex.Escape(user)}\b", "<you>", RegexOptions.IgnoreCase);
         if (machine.Length >= 3) text = Regex.Replace(text, $@"\b{Regex.Escape(machine)}\b", "<pc>", RegexOptions.IgnoreCase);
-        foreach (var a in s?.Cs2?.Accounts ?? []) if (a.SteamId3.Length > 0) text = text.Replace(a.SteamId3, "<steam-id>");
+        // Real SteamID3s are 5+ digits; matching whole numbers only keeps other values intact.
+        foreach (var a in s?.Cs2?.Accounts ?? [])
+            if (a.SteamId3.Length >= 5) text = Regex.Replace(text, $@"(?<!\d){Regex.Escape(a.SteamId3)}(?!\d)", "<steam-id>");
         text = SubsysId().Replace(text, "SUBSYS_<id>");
         text = Email().Replace(text, "<email>");
         return text;
@@ -83,6 +90,9 @@ public static partial class ReportBuilder
 
     [GeneratedRegex(@"[A-Za-z]:\\Users\\(?!<you>|Public\b|Default\b)[^\\\s""']+", RegexOptions.IgnoreCase)]
     private static partial Regex UsersPath();
+
+    [GeneratedRegex(@"[A-Za-z]:\\\\Users\\\\(?!<you>|Public\b|Default\b)[^\\\s""']+", RegexOptions.IgnoreCase)]
+    private static partial Regex UsersPathJson();
 
     [GeneratedRegex(@"SUBSYS_[0-9A-F]{8}", RegexOptions.IgnoreCase)]
     private static partial Regex SubsysId();

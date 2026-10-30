@@ -1,0 +1,37 @@
+name: Release
+
+# Push a tag like v0.1.0 to build RigScope.exe and attach it to a GitHub release with its SHA-256.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet test -c Release
+      - run: dotnet publish src/RigScope.App -c Release -r win-x64 -o publish
+      - name: Checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash publish/RigScope.exe -Algorithm SHA256).Hash
+          "$hash  RigScope.exe" | Set-Content publish/RigScope.exe.sha256
+          "SHA256=$hash" >> $env:GITHUB_ENV
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            publish/RigScope.exe
+            publish/RigScope.exe.sha256
+          body: |
+            RigScope ${{ github.ref_name }}. Read-only competitive FPS check for Windows.
+
+            SHA-256 of RigScope.exe: `${{ env.SHA256 }}`
+
+            The exe isn't code-signed yet, so SmartScreen may warn. Click **More info › Run anyway**, or build from source.

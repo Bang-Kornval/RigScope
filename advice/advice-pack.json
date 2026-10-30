@@ -344,8 +344,7 @@
       "recommendation": "Skip timer resolution tools.",
       "why": "Since Windows 10 version 2004 timer resolution is per process. Games already request what they need, so a background tool forcing 0.5 ms doesn't change the game.",
       "impact": "none",
-      "evidence": "low",
-      "sources": [ { "title": "Blur Busters forum discussion", "url": "https://forums.blurbusters.com/viewtopic.php?p=108506", "date": "2024" } ]
+      "evidence": "low"
     },
     {
       "id": "windows.nagle",
@@ -428,8 +427,7 @@
         "To check for spikes, run LatencyMon for a few minutes with the suites running and without."
       ],
       "undo": "Set them back to Enabled in Startup apps.",
-      "risk": "Some lighting effects and audio features (e.g. SteelSeries Sonar EQ) need the app running.",
-      "sources": [ { "title": "Corsair forum: stutter caused by iCUE", "url": "https://forum.corsair.com/forums/topic/145542-random-video-lagstutter-caused-by-icue/", "date": "" } ]
+      "risk": "Some lighting effects and audio features (e.g. SteelSeries Sonar EQ) need the app running."
     },
     {
       "id": "apps.virtual-machines",
@@ -553,8 +551,7 @@
       "recommendation": "On an early I225-V, update the driver, turn off Energy Efficient Ethernet, and consider a USB or PCIe 2.5G adapter if drops continue.",
       "why": "Revision 1 and 2 (B1/B2 stepping) of Intel's I225-V had a hardware bug causing drops. Revision 3 (B3) fixed it.",
       "impact": "medium",
-      "evidence": "medium",
-      "sources": [ { "title": "AnandTech: Intel I225/I226 connection issues", "url": "https://www.anandtech.com/show/18755", "date": "2023" } ]
+      "evidence": "medium"
     },
     {
       "id": "network.bufferbloat",

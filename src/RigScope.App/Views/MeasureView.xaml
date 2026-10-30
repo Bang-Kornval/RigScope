@@ -1,0 +1,55 @@
+<UserControl x:Class="RigScope.App.Views.MeasureView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
+        <StackPanel MaxWidth="900" HorizontalAlignment="Left">
+            <TextBlock Text="Measure" Style="{StaticResource PageTitle}" />
+            <TextBlock Style="{StaticResource PageSubtitle}"
+                       Text="Most tweaks change performance by a few percent at most, which is less than the normal run-to-run difference. Measure before and after so you keep what actually helps on your PC." />
+
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="How to test one change" Style="{StaticResource SectionTitle}" />
+                    <TextBlock TextWrapping="Wrap" LineHeight="22">
+                        <Run FontWeight="SemiBold">1. Pick one repeatable test.</Run>
+                        <Run Text="In CS2, use a benchmark map from the Steam Workshop (search for &quot;FPS Benchmark&quot;) or the same demo tick. In other games, use the practice range or a replay of the same scene." />
+                        <LineBreak /><Run FontWeight="SemiBold">2. Record three runs before the change.</Run>
+                        <Run Text="Use CapFrameX or PresentMon. Note the average FPS and the 1% low." />
+                        <LineBreak /><Run FontWeight="SemiBold">3. Change one thing only, restart the game, record three runs again.</Run>
+                        <LineBreak /><Run FontWeight="SemiBold">4. Compare.</Run>
+                        <Run Text="Differences under about 3% are noise. Look at 1% lows and frame-time spikes, not only the average. If nothing improved, change it back." />
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="CPU-bound or GPU-bound?" Style="{StaticResource SectionTitle}" />
+                    <TextBlock TextWrapping="Wrap" LineHeight="22"
+                               Text="PresentMon's GPU Busy value tells you which part limits your FPS. If GPU Busy is close to the frame time, the graphics card is the limit: lowering MSAA or resolution helps. If GPU Busy is much lower than the frame time, the CPU and memory are the limit: background apps, RAM speed (XMP/EXPO) and Reflex Boost matter more, and graphics settings barely change FPS." />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Free tools" Style="{StaticResource SectionTitle}" />
+                    <ItemsControl ItemsSource="{Binding Tools}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,4,0,10">
+                                    <TextBlock>
+                                        <Hyperlink Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Url}"
+                                                   ToolTip="{Binding Url}">
+                                            <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" />
+                                        </Hyperlink>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding What}" TextWrapping="Wrap" Opacity="0.8" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

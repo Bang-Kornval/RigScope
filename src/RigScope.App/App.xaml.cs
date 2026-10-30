@@ -1,13 +1,27 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Windows;
+﻿using System.Windows;
+using System.Windows.Threading;
+using RigScope.App.ViewModels;
 
 namespace RigScope.App;
 
-/// <summary>
-/// Interaction logic for App.xaml
-/// </summary>
 public partial class App : Application
 {
-}
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+        DispatcherUnhandledException += OnUnhandled;
 
+        var vm = new MainViewModel();
+        var window = new MainWindow { DataContext = vm };
+        window.Show();
+        _ = vm.LoadAsync();
+    }
+
+    private static void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        // A read-only tool should never take the user's evening down with it: show the error and keep running.
+        MessageBox.Show($"Something went wrong:\n\n{e.Exception.Message}\n\nRigScope keeps running. Please report this on GitHub.",
+            "RigScope", MessageBoxButton.OK, MessageBoxImage.Warning);
+        e.Handled = true;
+    }
+}
