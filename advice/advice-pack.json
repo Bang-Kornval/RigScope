@@ -1,0 +1,1085 @@
+{
+  // RigScope advice pack. Paths and condition syntax: see src/RigScope.Core/Rules/SnapshotQuery.cs.
+  // Every rule must say how strong its evidence is. Prefer measured sources; say so when there are none.
+  "version": "2026.10.30",
+  "updated": "2026-10-30",
+  "rules": [
+
+    // ───────────────────────────── Display ─────────────────────────────
+    {
+      "id": "display.refresh-primary",
+      "title": "Main monitor refresh rate",
+      "category": "display",
+      "appliesWhen": { "path": "display.maxRefreshHz", "gt": 0 },
+      "current": "{display.refreshHz} Hz (max {display.maxRefreshHz} Hz) on {display.monitorName|default:your main monitor}",
+      "outcomes": [
+        { "when": { "path": "display.runningBelowMaxRefresh", "eq": true }, "status": "warn",
+          "summary": "Your main monitor runs at {display.refreshHz} Hz but supports {display.maxRefreshHz} Hz." },
+        { "status": "good", "summary": "Running at its highest refresh rate ({display.refreshHz} Hz)." }
+      ],
+      "recommendation": "Run your gaming monitor at its highest refresh rate.",
+      "why": "A higher refresh rate shows each new frame sooner and makes motion clearer. Windows often picks 60 Hz for a new monitor, and the setting can reset after driver installs or cable changes.",
+      "impact": "large",
+      "evidence": "high",
+      "steps": [
+        "Open Settings › System › Display › Advanced display.",
+        "Select the monitor and pick the highest refresh rate.",
+        "If the rate you expect is missing, check the cable (DisplayPort, or HDMI 2.0 or newer) and the monitor's own menu for an overclock setting."
+      ],
+      "undo": "Pick the previous refresh rate in the same menu.",
+      "risk": "None."
+    },
+    {
+      "id": "display.refresh-secondary",
+      "title": "Second monitor refresh rate",
+      "category": "display",
+      "appliesWhen": { "path": "displays[isPrimary=false]", "countGte": 1 },
+      "current": "{displays[isPrimary=false].monitorName|join}: {displays[isPrimary=false].refreshHz|join} Hz",
+      "outcomes": [
+        { "when": { "path": "displays[isPrimary=false,runningBelowMaxRefresh=true]", "countGte": 1 }, "status": "suggest",
+          "summary": "{displays[isPrimary=false,runningBelowMaxRefresh=true].monitorName|join} runs below its maximum ({displays[isPrimary=false,runningBelowMaxRefresh=true].maxRefreshHz|join} Hz)." },
+        { "status": "good", "summary": "Your other monitors run at their highest refresh rate." }
+      ],
+      "recommendation": "Run every monitor at its highest refresh rate, and keep video and animated apps off the second screen while you play.",
+      "why": "In exclusive fullscreen a second monitor at a different refresh rate is mostly harmless on Windows 11. People who see stutter usually trace it to videos, streams or animated wallpapers playing on the second screen, or to borderless mode. The evidence is forum reports, not measurements.",
+      "impact": "small",
+      "evidence": "low",
+      "steps": [
+        "Settings › System › Display › Advanced display › select the second monitor › pick its highest refresh rate.",
+        "To test whether it matters on your PC: log frame times (CapFrameX or PresentMon) with the second monitor on and then unplugged, on the same map."
+      ],
+      "undo": "Pick the previous refresh rate.",
+      "risk": "None."
+    },
+    {
+      "id": "display.sync-choice",
+      "title": "G-SYNC / FreeSync or uncapped with tearing",
+      "category": "display",
+      "kind": "preference",
+      "outcomes": [ { "status": "info", "summary": "Two good setups; pick one and set your frame cap to match." } ],
+      "recommendation": "Either: variable refresh (G-SYNC/FreeSync) on, V-Sync on in the driver, V-Sync off in the game, Reflex or Anti-Lag on. Or: everything off and as many FPS as you can hold, accepting tearing.",
+      "why": "With variable refresh and Reflex, the frame rate is capped just under your refresh rate (about 158 FPS on 165 Hz), so you get no tearing and low latency. Uncapped without sync gives slightly lower latency at very high FPS, but the image tears. Most pros run uncapped; many players prefer the smoother picture. Neither is wrong.",
+      "impact": "medium",
+      "evidence": "high",
+      "steps": [
+        "Variable refresh: turn on Adaptive-Sync/FreeSync in the monitor's menu, then G-SYNC in NVIDIA Control Panel › Set up G-SYNC (or FreeSync in AMD Software).",
+        "In NVIDIA Control Panel › Manage 3D settings, set Vertical sync to On. In the game, set V-Sync off and Reflex on.",
+        "Uncapped: leave G-SYNC off, V-Sync off everywhere, and set the game's FPS cap to 0 or a value you can actually hold."
+      ],
+      "undo": "Switch the same settings back.",
+      "risk": "None.",
+      "sources": [
+        { "title": "Blur Busters: G-SYNC 101, optimal settings", "url": "https://blurbusters.com/gsync/gsync101-input-lag-tests-and-settings/14/", "date": "2019" },
+        { "title": "NVIDIA Reflex low latency platform", "url": "https://www.nvidia.com/en-us/geforce/news/reflex-low-latency-platform/", "date": "2020" }
+      ]
+    },
+
+    // ───────────────────────────── GPU driver ─────────────────────────────
+    {
+      "id": "gpu.driver-age",
+      "title": "Graphics driver",
+      "category": "gpu",
+      "appliesWhen": { "path": "gpu.driverAgeDays", "exists": true },
+      "current": "{gpu.name}, driver {gpu.vendorDriverVersion|default:{gpu.driverVersion}} ({gpu.driverAgeDays|days} old)",
+      "outcomes": [
+        { "when": { "path": "gpu.driverAgeDays", "gt": 180 }, "status": "suggest", "summary": "Your graphics driver is {gpu.driverAgeDays|days} old." },
+        { "status": "good", "summary": "Your graphics driver is recent ({gpu.driverAgeDays|days} old)." }
+      ],
+      "recommendation": "Keep the graphics driver within a few months of the latest release.",
+      "why": "Game-ready drivers fix crashes and stutter in new game updates. You don't need every release, but a driver older than about six months often misses fixes for current versions of competitive games.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [
+        "NVIDIA: NVIDIA App › Drivers › download the latest Game Ready driver.",
+        "AMD: AMD Software: Adrenalin Edition › Driver and Software.",
+        "Intel: Intel Graphics Software or intel.com/arc drivers."
+      ],
+      "undo": "Reinstall the older driver from the vendor's driver archive.",
+      "risk": "Low. A brand-new driver occasionally has a bug; if a game breaks, roll back."
+    },
+    {
+      "id": "gpu.ddu-every-update",
+      "title": "Clean-install the driver with DDU on every update",
+      "category": "gpu",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "Not needed unless something is broken." } ],
+      "recommendation": "Update normally. Use DDU only to fix a driver that is actually misbehaving, or when switching GPU brands.",
+      "why": "A normal driver update replaces the old driver. DDU is a repair tool; running it every time adds risk (it removes settings and reboots into Safe Mode) and no one has measured a performance gain.",
+      "impact": "none",
+      "evidence": "low"
+    },
+    {
+      "id": "gpu.clear-shader-cache",
+      "title": "Clear the shader cache regularly for more FPS",
+      "category": "gpu",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "Clearing it causes stutter while the game rebuilds it." } ],
+      "recommendation": "Leave the shader cache alone. Only clear it to free disk space or to fix corruption after a driver change.",
+      "why": "The cache stores compiled shaders so the game doesn't compile them mid-match. Clearing it makes the first matches afterwards stutter more, not less.",
+      "impact": "none",
+      "evidence": "medium"
+    },
+    {
+      "id": "gpu.nvidia-low-latency-mode",
+      "title": "NVIDIA Low Latency Mode",
+      "category": "gpu",
+      "appliesWhen": { "path": "gpu.vendor", "eq": "nvidia" },
+      "outcomes": [ { "status": "info", "summary": "Reflex in the game takes over; Low Latency Mode doesn't matter then." } ],
+      "recommendation": "Turn Reflex on in the game. Low Latency Mode can stay at its default.",
+      "why": "NVIDIA says that when a game has Reflex and it's on, Reflex overrides the driver's Low Latency Mode. Low Latency Mode only matters for games without Reflex.",
+      "impact": "none",
+      "evidence": "high",
+      "steps": [ "In the game's video settings, set NVIDIA Reflex to Enabled." ],
+      "sources": [ { "title": "NVIDIA Reflex low latency platform", "url": "https://www.nvidia.com/en-us/geforce/news/reflex-low-latency-platform/", "date": "2020" } ]
+    },
+    {
+      "id": "gpu.nvidia-power-mode",
+      "title": "NVIDIA power management mode",
+      "category": "gpu",
+      "appliesWhen": { "path": "gpu.vendor", "eq": "nvidia" },
+      "outcomes": [ { "status": "info", "summary": "RigScope can't read this. Worth checking for the game's profile." } ],
+      "recommendation": "Set Power management mode to Prefer maximum performance for the game (not globally).",
+      "why": "At low resolutions an esports game can leave the GPU lightly loaded, and the card may drop its clocks between frames. Keeping clocks up can smooth frame times a little. The evidence is mostly anecdotal, and it raises idle power if set globally.",
+      "impact": "small",
+      "evidence": "low",
+      "steps": [
+        "NVIDIA Control Panel › Manage 3D settings › Program Settings › select the game's .exe.",
+        "Power management mode › Prefer maximum performance › Apply."
+      ],
+      "undo": "Set it back to Normal (or Use global setting).",
+      "risk": "None."
+    },
+    {
+      "id": "gpu.driver-fps-cap",
+      "title": "Frame cap in the driver",
+      "category": "gpu",
+      "appliesWhen": { "path": "gpu.vendor", "in": ["nvidia", "amd"] },
+      "outcomes": [ { "status": "info", "summary": "Prefer the game's own cap or Reflex over a driver cap." } ],
+      "recommendation": "Leave the driver's Max Frame Rate (or AMD Frame Rate Target Control) off. Cap in the game, or let Reflex cap for you with G-SYNC.",
+      "why": "A cap inside the game holds frames back before input is read, which keeps latency low. A driver-level cap waits later in the pipeline and adds a little latency. Blur Busters measured this for G-SYNC setups.",
+      "impact": "small",
+      "evidence": "medium",
+      "sources": [ { "title": "Blur Busters: G-SYNC 101, frame rate limiters", "url": "https://blurbusters.com/gsync/gsync101-input-lag-tests-and-settings/14/", "date": "2019" } ]
+    },
+    {
+      "id": "gpu.resizable-bar",
+      "title": "Resizable BAR",
+      "category": "gpu",
+      "appliesWhen": { "path": "gpu.resizableBarEnabled", "exists": true },
+      "current": "{gpu.resizableBarEnabled|bool:On/Off}",
+      "outcomes": [
+        { "when": { "path": "gpu.resizableBarEnabled", "eq": false }, "status": "info", "summary": "Off. Harmless to turn on, but don't expect more FPS in esports games." },
+        { "status": "good", "summary": "On." }
+      ],
+      "recommendation": "Optional. Turn it on if you want, but it is not an esports FPS fix.",
+      "why": "NVIDIA enables Resizable BAR per game from a whitelist. No benchmark shows a gain in CS2 or other esports titles, and turning it on needs BIOS changes.",
+      "impact": "none",
+      "evidence": "low",
+      "steps": [
+        "Check Windows is installed in UEFI mode on a GPT disk first (RigScope: Firmware › Boot mode).",
+        "In the BIOS: disable CSM, enable Above 4G Decoding, set Re-Size BAR Support to Auto/Enabled.",
+        "Some 2020–2021 cards also need a VBIOS update from the card maker."
+      ],
+      "undo": "Set Re-Size BAR Support back to Disabled in the BIOS.",
+      "risk": "Disabling CSM on a PC that boots in legacy/MBR mode stops Windows from starting until you turn CSM back on.",
+      "sources": [ { "title": "ASUS: how to enable Resizable BAR", "url": "https://edgeup.asus.com/2021/guide-how-to-enable-resizable-bar-on-your-asus-powered-gaming-pc/", "date": "2021" } ]
+    },
+    {
+      "id": "gpu.pcie-width",
+      "title": "Graphics card slot speed",
+      "category": "gpu",
+      "appliesWhen": { "path": "gpu.pcieWidth", "exists": true },
+      "current": "PCIe x{gpu.pcieWidth}",
+      "outcomes": [
+        { "when": { "path": "gpu.pcieWidth", "lt": 8 }, "status": "warn", "summary": "The graphics card is running at PCIe x{gpu.pcieWidth}." }
+      ],
+      "recommendation": "Put the graphics card in the top full-length slot so it runs at x16 (or x8 for cards built for x8).",
+      "why": "A card in a lower slot can run at x4 or x1, which cuts bandwidth enough to cause stutter. This is usually a build mistake or a loose card.",
+      "impact": "large",
+      "evidence": "high",
+      "steps": [ "Shut down, unplug, and move the card to the slot closest to the CPU. Make sure it clicks in fully." ],
+      "risk": "Handle the card with the PC unplugged."
+    },
+    {
+      "id": "gpu.digital-vibrance",
+      "title": "Digital vibrance / saturation",
+      "category": "gpu",
+      "kind": "preference",
+      "appliesWhen": { "path": "gpu.vendor", "in": ["nvidia", "amd"] },
+      "outcomes": [ { "status": "info", "summary": "Personal preference; many players raise it to make player models stand out." } ],
+      "recommendation": "Try 60–80% digital vibrance (NVIDIA) or higher saturation (AMD) if you like the look.",
+      "why": "More saturated colours can make models easier to spot against grey maps. It doesn't change performance. ProSettings shows many pros using it, which is popularity, not proof.",
+      "impact": "small",
+      "evidence": "low",
+      "steps": [ "NVIDIA Control Panel › Display › Adjust desktop color settings › Digital vibrance.", "AMD Software › Settings › Display › Custom Color › Saturation." ]
+    },
+
+    // ───────────────────────────── Windows ─────────────────────────────
+    {
+      "id": "windows.game-mode",
+      "title": "Game Mode",
+      "category": "windows",
+      "current": "{windows.gameModeEnabled|bool:On/Off|default:On (Windows default)}",
+      "outcomes": [
+        { "when": { "path": "windows.gameModeEnabled", "eq": false }, "status": "suggest", "summary": "Game Mode is off." },
+        { "status": "good", "summary": "Game Mode is on." }
+      ],
+      "recommendation": "Leave Game Mode on.",
+      "why": "Game Mode stops Windows Update restarts and driver installs while you play, and helps Windows place game threads on the right cores. On AMD dual-CCD X3D chips and Intel hybrid chips it's part of how the game lands on the fast cores. FPS gains on its own are small.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [ "Settings › Gaming › Game Mode › On." ],
+      "undo": "Same switch.",
+      "risk": "None."
+    },
+    {
+      "id": "windows.background-recording",
+      "title": "Xbox Game Bar background recording",
+      "category": "windows",
+      "appliesWhen": { "path": "windows.backgroundRecording", "exists": true },
+      "current": "{windows.backgroundRecording|bool:On/Off}",
+      "outcomes": [
+        { "when": { "path": "windows.backgroundRecording", "eq": true }, "status": "suggest", "summary": "Windows is recording the last few minutes of gameplay in the background." },
+        { "status": "good", "summary": "Background recording is off." }
+      ],
+      "recommendation": "Turn off \"Record what happened\" unless it's the recorder you actually use. Run one recorder at most.",
+      "why": "Background recording keeps the GPU's video encoder busy all the time. The cost is small (about 1–3% FPS) but it doubles up if another recorder (SteelSeries Moments, Medal, NVIDIA Instant Replay) also runs.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [ "Settings › Gaming › Captures › Record what happened › Off." ],
+      "undo": "Same switch.",
+      "risk": "None."
+    },
+    {
+      "id": "windows.memory-integrity",
+      "title": "Memory Integrity (Core isolation)",
+      "category": "windows",
+      "appliesWhen": { "path": "security.memoryIntegrityRunning", "exists": true },
+      "current": "{security.memoryIntegrityRunning|bool:On/Off}",
+      "outcomes": [
+        { "when": { "path": "security.memoryIntegrityRunning", "eq": true }, "status": "good", "summary": "On. It costs a few percent FPS, but turning it off isn't worth it." },
+        { "status": "info", "summary": "Off. Some anti-cheats (Riot Vanguard, FACEIT) may ask you to turn it on." }
+      ],
+      "recommendation": "Keep Memory Integrity on.",
+      "why": "Tests on 11th-gen Intel measured about 3–7% lower average FPS with it on. That's the one sizeable Windows-level cost, but it protects against malicious kernel drivers, and Riot Vanguard may refuse to run or prompt you without it. If Docker, WSL2 or Hyper-V is installed, the hypervisor stays loaded anyway, so turning it off gets back only part of the cost.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [ "Windows Security › Device security › Core isolation details › Memory integrity." ],
+      "undo": "Same switch, then restart.",
+      "risk": "Turning it off lowers protection against bad drivers and can trigger anti-cheat restrictions.",
+      "sources": [
+        { "title": "Tom's Hardware: Windows 11 VBS/HVCI gaming benchmarks", "url": "https://www.tomshardware.com/news/windows-11-gaming-benchmarks-performance-vbs-hvci-security/", "date": "2021" },
+        { "title": "Riot: Vanguard security requirements", "url": "https://support.riotgames.com/en-us/riot/performance/vanguard-security-requirements", "date": "2026" }
+      ]
+    },
+    {
+      "id": "windows.hags",
+      "title": "Hardware-accelerated GPU scheduling",
+      "category": "windows",
+      "kind": "preference",
+      "current": "{windows.hagsEnabled|bool:On/Off|default:Windows default}",
+      "outcomes": [ { "status": "info", "summary": "No consistent gain either way in tests; leave it unless you want to A/B test." } ],
+      "recommendation": "Leave it at whatever it is. Test both only if you measure frame times.",
+      "why": "PCWorld's tests found no consistent FPS difference. Reports on latency with Reflex conflict. It's required for frame generation (RTX 40 and newer), which competitive players usually don't use.",
+      "impact": "none",
+      "evidence": "low",
+      "steps": [ "Settings › System › Display › Graphics › Change default graphics settings › Hardware-accelerated GPU scheduling. Needs a restart." ],
+      "sources": [ { "title": "PCWorld: should you enable HAGS?", "url": "https://www.pcworld.com/article/2339130/should-you-enable-hardware-accelerated-gpu-scheduling-in-windows-11.html", "date": "2024" } ]
+    },
+    {
+      "id": "windows.windowed-optimizations",
+      "title": "Optimizations for windowed games",
+      "category": "windows",
+      "current": "{windows.windowedOptimizations|bool:On/Off|default:Windows default}",
+      "outcomes": [
+        { "when": { "path": "windows.windowedOptimizations", "eq": false }, "status": "suggest", "summary": "Off. Turn it on if you play in borderless/windowed mode." },
+        { "status": "good", "summary": "On (or default)." }
+      ],
+      "recommendation": "Leave it on.",
+      "why": "It switches older DirectX 10/11 games in borderless or windowed mode to a lower-latency presentation model. It does nothing in exclusive fullscreen and doesn't hurt.",
+      "impact": "small",
+      "evidence": "high",
+      "steps": [ "Settings › System › Display › Graphics › Change default graphics settings › Optimizations for windowed games." ],
+      "sources": [ { "title": "Microsoft DirectX blog: updates in graphics and gaming", "url": "https://devblogs.microsoft.com/directx/updates-in-graphics-and-gaming/", "date": "2022" } ]
+    },
+    {
+      "id": "windows.power-plan",
+      "title": "Power plan",
+      "category": "windows",
+      "current": "{windows.powerPlanName|default:Unknown}",
+      "outcomes": [
+        { "when": { "path": "windows.powerPlanIsPowerSaver", "eq": true }, "status": "warn", "summary": "Power saver limits CPU speed in games." },
+        { "when": { "all": [ { "path": "windows.powerPlanIsBalanced", "eq": true }, { "path": "firmware.isLaptop", "eq": false } ] }, "status": "info", "summary": "Balanced is fine. High performance can avoid small clock ramp-up hitches." },
+        { "status": "good", "summary": "{windows.powerPlanName}." }
+      ],
+      "recommendation": "Balanced or High performance on a desktop. Avoid Power saver.",
+      "why": "Modern CPUs boost well on Balanced. High performance keeps clocks and cores ready, which can remove small hitches at the cost of idle power. Imported \"ultimate\" plans from tweak scripts are fine, but if you're unsure what they change, use the built-in High performance plan.",
+      "impact": "small",
+      "evidence": "low",
+      "steps": [ "Control Panel › Power Options (or run powercfg.cpl) › choose High performance or Balanced." ],
+      "undo": "Pick the previous plan.",
+      "risk": "Higher idle power use on High performance."
+    },
+    {
+      "id": "windows.mouse-acceleration",
+      "title": "Enhance pointer precision",
+      "category": "windows",
+      "current": "{windows.mouseAcceleration|bool:On/Off}",
+      "outcomes": [
+        { "when": { "path": "windows.mouseAcceleration", "eq": true }, "status": "info", "summary": "On. Competitive games use raw input, so it doesn't affect aim, only the desktop." },
+        { "status": "good", "summary": "Off." }
+      ],
+      "recommendation": "Turn it off for a consistent feel between desktop and game.",
+      "why": "CS2, VALORANT, Apex and other modern shooters read raw mouse input and ignore Windows acceleration. It only changes how the cursor feels in menus and on the desktop.",
+      "impact": "none",
+      "evidence": "high",
+      "steps": [ "Settings › Bluetooth & devices › Mouse › Additional mouse settings › Pointer Options › untick Enhance pointer precision." ]
+    },
+    {
+      "id": "windows.timer-resolution",
+      "title": "Timer resolution tools and GlobalTimerResolutionRequests",
+      "category": "windows",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "Games set their own timer; system-wide tools add nothing." } ],
+      "recommendation": "Skip timer resolution tools.",
+      "why": "Since Windows 10 version 2004 timer resolution is per process. Games already request what they need, so a background tool forcing 0.5 ms doesn't change the game.",
+      "impact": "none",
+      "evidence": "low",
+      "sources": [ { "title": "Blur Busters forum discussion", "url": "https://forums.blurbusters.com/viewtopic.php?p=108506", "date": "2024" } ]
+    },
+    {
+      "id": "windows.nagle",
+      "title": "Disable Nagle's algorithm (TcpNoDelay, TcpAckFrequency)",
+      "category": "network",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "Only affects TCP; game traffic is UDP." } ],
+      "recommendation": "Skip it.",
+      "why": "Nagle's algorithm batches small TCP packets. Competitive shooters send game traffic over UDP, which Nagle never touches.",
+      "impact": "none",
+      "evidence": "high",
+      "sources": [ { "title": "Microsoft: Socket.NoDelay (TCP only)", "url": "https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.socket.nodelay", "date": "" } ]
+    },
+    {
+      "id": "windows.network-throttling",
+      "title": "NetworkThrottlingIndex and SystemResponsiveness tweaks",
+      "category": "windows",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "These don't apply to how games send traffic." } ],
+      "recommendation": "Skip them.",
+      "why": "NetworkThrottlingIndex only throttles above about 10 packets per millisecond while media plays; games send 64–128 packets per second. SystemResponsiveness only affects threads registered with the Windows multimedia scheduler.",
+      "impact": "none",
+      "evidence": "medium"
+    },
+    {
+      "id": "windows.priority-separation",
+      "title": "Win32PrioritySeparation and \"-high\" priority",
+      "category": "windows",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "Windows already favours the game in the foreground." } ],
+      "recommendation": "Skip it.",
+      "why": "The default already boosts the foreground app. Forcing high priority can starve audio and input threads, which makes things worse, and no one has measured a gain.",
+      "impact": "none",
+      "evidence": "low"
+    },
+    {
+      "id": "windows.debloat",
+      "title": "Debloat scripts and disabling SysMain/Search",
+      "category": "windows",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "No measured FPS gain on an SSD with 16 GB or more." } ],
+      "recommendation": "Skip FPS \"debloat packs\". Remove apps you don't use the normal way instead.",
+      "why": "SysMain and Search use almost nothing on a modern SSD system. Aggressive scripts can break Windows Update, the Store and anti-cheat, and are hard to undo.",
+      "impact": "none",
+      "evidence": "low"
+    },
+    {
+      "id": "windows.fso",
+      "title": "Disable fullscreen optimizations on the game .exe",
+      "category": "windows",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "No measured benefit; can break alt-tab." } ],
+      "recommendation": "Leave the compatibility checkbox alone unless a game doesn't run in a flip present mode.",
+      "why": "Modern Windows already gives fullscreen games an independent flip path with the same latency as old exclusive fullscreen. A tool like PresentMon shows the present mode if you want to check.",
+      "impact": "none",
+      "evidence": "low"
+    },
+
+    // ───────────────────────────── Background apps ─────────────────────────────
+    {
+      "id": "apps.peripheral-suites",
+      "title": "Peripheral and RGB software",
+      "category": "apps",
+      "appliesWhen": { "path": "apps[category=rgb]", "countGte": 1 },
+      "current": "{apps[category=rgb].name|join}",
+      "outcomes": [
+        { "when": { "path": "apps[category=rgb,running=true]", "countGte": 2 }, "status": "suggest",
+          "summary": "{apps[category=rgb,running=true]|count} peripheral suites are running: {apps[category=rgb,running=true].name|join}." },
+        { "when": { "path": "apps[category=rgb,startsWithWindows=true]", "countGte": 2 }, "status": "suggest",
+          "summary": "{apps[category=rgb,startsWithWindows=true]|count} peripheral suites start with Windows." },
+        { "status": "good", "summary": "Only one peripheral suite is active." }
+      ],
+      "recommendation": "Save your mouse, keyboard and headset profiles to the devices' onboard memory, then keep one suite running (or none).",
+      "why": "RGB and peripheral suites poll hardware and animate lighting in the background. Many users report CPU spikes and stutter from iCUE, G HUB and others; nobody has benchmarked several together. Most devices keep DPI, polling rate and lighting without the software once saved to onboard memory.",
+      "impact": "medium",
+      "evidence": "low",
+      "steps": [
+        "In each suite, save your profile to the device (look for Onboard memory / Save to device).",
+        "Task Manager › Startup apps › set the suites you don't need to Disabled.",
+        "To check for spikes, run LatencyMon for a few minutes with the suites running and without."
+      ],
+      "undo": "Set them back to Enabled in Startup apps.",
+      "risk": "Some lighting effects and audio features (e.g. SteelSeries Sonar EQ) need the app running.",
+      "sources": [ { "title": "Corsair forum: stutter caused by iCUE", "url": "https://forum.corsair.com/forums/topic/145542-random-video-lagstutter-caused-by-icue/", "date": "" } ]
+    },
+    {
+      "id": "apps.virtual-machines",
+      "title": "Docker, WSL2 and virtual machines",
+      "category": "apps",
+      "appliesWhen": { "path": "apps[category=vm]", "countGte": 1 },
+      "current": "{apps[category=vm].name|join}",
+      "outcomes": [
+        { "when": { "path": "apps[category=vm,running=true]", "countGte": 1 }, "status": "suggest", "summary": "{apps[category=vm,running=true].name|join} is running now." },
+        { "when": { "path": "apps[category=vm,startsWithWindows=true]", "countGte": 1 }, "status": "suggest", "summary": "{apps[category=vm,startsWithWindows=true].name|join} starts with Windows." },
+        { "status": "good", "summary": "Installed, but not running and not starting with Windows." }
+      ],
+      "recommendation": "Quit Docker Desktop and other VMs before you play, and don't let them start with Windows.",
+      "why": "Having WSL2 installed costs very little, but a running VM (vmmem) reserves RAM and uses CPU in the background.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [ "Right-click the Docker whale in the system tray › Quit Docker Desktop.", "Docker Desktop › Settings › General › untick Start Docker Desktop when you sign in." ],
+      "undo": "Start Docker Desktop again when you need it.",
+      "sources": [ { "title": "Puget Systems: does enabling WSL2 affect performance?", "url": "https://www.pugetsystems.com/labs/hpc/does-enabling-wsl2-affect-performance-of-windows-10-applications-1832/", "date": "2020" } ]
+    },
+    {
+      "id": "apps.recorders",
+      "title": "Game recorders",
+      "category": "apps",
+      "appliesWhen": { "any": [ { "path": "apps[category=recorder]", "countGte": 1 }, { "path": "windows.backgroundRecording", "eq": true } ] },
+      "current": "{apps[category=recorder].name|join|default:none}",
+      "outcomes": [
+        { "when": { "any": [
+            { "path": "apps[category=recorder,running=true]", "countGte": 2 },
+            { "all": [ { "path": "apps[category=recorder,running=true]", "countGte": 1 }, { "path": "windows.backgroundRecording", "eq": true } ] } ] },
+          "status": "suggest", "summary": "More than one recorder is running." },
+        { "status": "good", "summary": "One recorder at most." }
+      ],
+      "recommendation": "Run one replay recorder at most. Turn off the ones you don't watch.",
+      "why": "Each recorder keeps a video encoder and disk writes going during matches. One costs a little; two costs twice that for no benefit.",
+      "impact": "small",
+      "evidence": "medium"
+    },
+    {
+      "id": "apps.overlays",
+      "title": "RivaTuner and other overlays",
+      "category": "apps",
+      "appliesWhen": { "path": "apps[category=overlay,running=true]", "countGte": 1 },
+      "current": "{apps[category=overlay,running=true].name|join}",
+      "outcomes": [ { "status": "info", "summary": "{apps[category=overlay,running=true].name|join} is running." } ],
+      "recommendation": "If you use RivaTuner as an FPS limiter, prefer the game's own cap or Reflex. Overlays are fine for monitoring.",
+      "why": "An external frame limiter adds a little latency compared with a cap inside the game. Overlays hook into the game's rendering; most anti-cheats allow RivaTuner and Overwolf, but they're a common cause of crashes.",
+      "impact": "small",
+      "evidence": "medium"
+    },
+    {
+      "id": "apps.sync",
+      "title": "Cloud sync during matches",
+      "category": "apps",
+      "appliesWhen": { "path": "apps[category=sync,running=true]", "countGte": 1 },
+      "current": "{apps[category=sync,running=true].name|join}",
+      "outcomes": [ { "status": "info", "summary": "{apps[category=sync,running=true].name|join} can upload in the background." } ],
+      "recommendation": "Pause syncing while you play, especially on a slow upload connection.",
+      "why": "A big upload can fill your connection and raise ping (bufferbloat). It doesn't affect FPS.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [ "Click the app's tray icon › Pause syncing (OneDrive: 2, 8 or 24 hours)." ]
+    },
+    {
+      "id": "apps.wallpaper",
+      "title": "Animated wallpaper",
+      "category": "apps",
+      "appliesWhen": { "path": "apps[category=wallpaper,running=true]", "countGte": 1 },
+      "outcomes": [ { "status": "info", "summary": "Wallpaper Engine is running." } ],
+      "recommendation": "Make sure it pauses when a game is fullscreen, including on other monitors.",
+      "why": "Wallpaper Engine pauses for fullscreen apps by default, but the setting is per monitor. Animated wallpapers on a second screen keep the GPU busy.",
+      "impact": "small",
+      "evidence": "low",
+      "steps": [ "Wallpaper Engine › Settings › Performance › Other application fullscreen › Pause (all monitors)." ]
+    },
+
+    // ───────────────────────────── Network ─────────────────────────────
+    {
+      "id": "network.wired",
+      "title": "Wired or Wi-Fi connection",
+      "category": "network",
+      "appliesWhen": { "path": "network[isDefaultRoute=true]", "countGte": 1 },
+      "current": "{network[isDefaultRoute=true].description|join}",
+      "outcomes": [
+        { "when": { "path": "network[isDefaultRoute=true].kind", "eq": "wifi" }, "status": "suggest", "summary": "You play over Wi-Fi." },
+        { "status": "good", "summary": "Wired connection." }
+      ],
+      "recommendation": "Use an Ethernet cable for competitive matches.",
+      "why": "Wi-Fi adds jitter and occasional packet loss, which shows up as rubber-banding and lost shots, even when average ping looks fine.",
+      "impact": "large",
+      "evidence": "high",
+      "steps": [ "Run a cable from the router, or use a powerline/MoCA adapter if a cable isn't possible." ]
+    },
+    {
+      "id": "network.eee",
+      "title": "Energy Efficient Ethernet",
+      "category": "network",
+      "appliesWhen": { "path": "network[isDefaultRoute=true].energyEfficientEthernet", "exists": true },
+      "current": "{network[isDefaultRoute=true].energyEfficientEthernet|bool:On/Off}",
+      "outcomes": [
+        { "when": { "path": "network[isDefaultRoute=true].energyEfficientEthernet", "eq": true }, "status": "suggest", "summary": "On. It can cause short drop-outs on some adapters." },
+        { "status": "good", "summary": "Off." }
+      ],
+      "recommendation": "Turn Energy Efficient Ethernet (or Green Ethernet) off.",
+      "why": "It saves a little power on idle links. On some adapters, including Intel's I225/I226, it is linked to short disconnects; Intel's own workaround is to turn it off.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [ "Device Manager › Network adapters › your Ethernet adapter › Properties › Advanced › Energy-Efficient Ethernet (or Green Ethernet) › Off." ],
+      "undo": "Set it back to On."
+    },
+    {
+      "id": "network.intel-i225",
+      "title": "Intel I225-V network chip revision",
+      "category": "network",
+      "appliesWhen": { "path": "network[*].hardwareId", "matches": "VEN_8086&DEV_15F[23]" },
+      "current": "{network[kind=ethernet].hardwareId|join}",
+      "outcomes": [
+        { "when": { "path": "network[*].hardwareId", "matches": "VEN_8086&DEV_15F[23].*REV_0[12]" }, "status": "warn", "summary": "Early I225-V revision, known for random disconnects." },
+        { "status": "good", "summary": "Fixed revision (B3 or later)." }
+      ],
+      "recommendation": "On an early I225-V, update the driver, turn off Energy Efficient Ethernet, and consider a USB or PCIe 2.5G adapter if drops continue.",
+      "why": "Revision 1 and 2 (B1/B2 stepping) of Intel's I225-V had a hardware bug causing drops. Revision 3 (B3) fixed it.",
+      "impact": "medium",
+      "evidence": "medium",
+      "sources": [ { "title": "AnandTech: Intel I225/I226 connection issues", "url": "https://www.anandtech.com/show/18755", "date": "2023" } ]
+    },
+    {
+      "id": "network.bufferbloat",
+      "title": "Bufferbloat (lag when someone else uses the internet)",
+      "category": "network",
+      "outcomes": [ { "status": "info", "summary": "RigScope can't test this from the PC. It takes one minute online." } ],
+      "recommendation": "Run a bufferbloat test. If latency under load rises a lot, turn on SQM or Smart QoS on your router.",
+      "why": "When someone streams or downloads on the same connection, a router without queue management lets ping jump by 100 ms or more. SQM keeps it low. This is often the biggest network fix in a shared home.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [ "Open waveform.com/tools/bufferbloat and run the test.", "If the grade is B or worse, look for SQM, Smart Queue or QoS in your router settings and set it a little below your measured speeds." ],
+      "sources": [ { "title": "Waveform bufferbloat test", "url": "https://www.waveform.com/tools/bufferbloat", "date": "" } ]
+    },
+    {
+      "id": "network.interrupt-moderation",
+      "title": "Disable interrupt moderation for lower ping",
+      "category": "network",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "Saves under a few milliseconds at best and costs CPU." } ],
+      "recommendation": "Leave interrupt moderation on.",
+      "why": "Game traffic is a few hundred small packets per second. Turning moderation off makes the CPU handle each packet separately for a gain too small to notice.",
+      "impact": "none",
+      "evidence": "low"
+    },
+    {
+      "id": "network.hyperv-adapter",
+      "title": "The Hyper-V/WSL network adapter adds lag",
+      "category": "network",
+      "kind": "myth",
+      "appliesWhen": { "path": "network[kind=virtual].description", "matches": "Hyper-V" },
+      "outcomes": [ { "status": "myth", "summary": "Game traffic uses your real adapter." } ],
+      "recommendation": "Leave it.",
+      "why": "Windows sends internet traffic through the adapter with the default route, which is your Ethernet or Wi-Fi adapter. The virtual adapter only carries traffic to the VM.",
+      "impact": "none",
+      "evidence": "medium"
+    },
+
+    // ───────────────────────────── BIOS and hardware ─────────────────────────────
+    {
+      "id": "firmware.xmp",
+      "title": "RAM speed (XMP / EXPO)",
+      "category": "firmware",
+      "appliesWhen": { "path": "memory.configuredMts", "gt": 0 },
+      "current": "{memory.configuredMts} MT/s (rated {memory.ratedMts} MT/s), {memory.totalGb} GB {memory.generation}",
+      "outcomes": [
+        { "when": { "path": "memory.likelyRunningBelowRated", "eq": true }, "status": "warn", "summary": "Your RAM runs at {memory.configuredMts} MT/s but is rated for {memory.ratedMts} MT/s." },
+        { "status": "good", "summary": "Running at its rated speed." }
+      ],
+      "recommendation": "Turn on XMP (Intel) or EXPO (AMD) in the BIOS so the RAM runs at its rated speed.",
+      "why": "RAM starts at a slow default speed until you enable its profile. Esports games at high FPS are limited by the CPU and memory, so this is often the largest free gain on a new build: 10–20% in CPU-bound games.",
+      "impact": "large",
+      "evidence": "high",
+      "steps": [ "Restart into the BIOS (usually Del or F2).", "Find XMP / DOCP (ASUS) / EXPO and pick Profile 1.", "Save and exit. If the PC doesn't start, it resets after a few tries, or clear CMOS." ],
+      "undo": "Set the profile back to Disabled/Auto.",
+      "risk": "Rarely unstable; if games crash after enabling it, try the next lower speed."
+    },
+    {
+      "id": "firmware.single-channel",
+      "title": "Single-channel memory",
+      "category": "firmware",
+      "appliesWhen": { "path": "memory.likelySingleChannel", "eq": true },
+      "current": "{memory.modules|count} memory stick",
+      "outcomes": [ { "status": "warn", "summary": "Only one memory stick is installed, so the RAM runs in single channel." } ],
+      "recommendation": "Use two matching sticks (dual channel).",
+      "why": "Dual channel doubles memory bandwidth. In CPU-bound esports games single channel can cost 15–30% FPS and hurt 1% lows.",
+      "impact": "large",
+      "evidence": "high",
+      "steps": [ "Buy a matching kit of two sticks and install them in the slots your motherboard manual marks for two modules (usually A2 and B2)." ]
+    },
+    {
+      "id": "firmware.bios-age",
+      "title": "BIOS version",
+      "category": "firmware",
+      "appliesWhen": { "path": "firmware.biosAgeDays", "exists": true },
+      "current": "{firmware.biosVersion} from {firmware.biosDate|date} on {firmware.boardProduct|default:your motherboard}",
+      "outcomes": [
+        { "when": { "path": "firmware.biosAgeDays", "gt": 730 }, "status": "suggest", "summary": "Your BIOS is from {firmware.biosDate|date}, more than two years old." },
+        { "status": "good", "summary": "BIOS from {firmware.biosDate|date}." }
+      ],
+      "recommendation": "Check your motherboard maker's support page for a newer BIOS.",
+      "why": "BIOS updates bring CPU microcode, security and memory-compatibility fixes. They rarely add FPS, but some fix real stability or stutter issues. A flash resets BIOS settings, so you need to turn XMP/EXPO back on afterwards.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [
+        "Search for your board ({firmware.boardProduct}) on the maker's site › Support › BIOS.",
+        "Read the release notes; some versions require an Intel ME or chipset update first.",
+        "Suspend BitLocker if it's on, then flash with the board's built-in tool (EZ Flash, M-Flash, Q-Flash)."
+      ],
+      "undo": "Most boards allow flashing an older version again.",
+      "risk": "Don't turn off the PC during the flash. Many boards have a BIOS FlashBack button for recovery."
+    },
+    {
+      "id": "firmware.intel-gear-mode",
+      "title": "Memory Gear mode (Intel 11th gen)",
+      "category": "firmware",
+      "appliesWhen": { "all": [ { "path": "cpu.name", "matches": "11th Gen Intel" }, { "path": "memory.generation", "eq": "DDR4" }, { "path": "memory.configuredMts", "gt": 2933 } ] },
+      "current": "{memory.configuredMts} MT/s on {cpu.name}",
+      "outcomes": [ { "status": "info", "summary": "Check that the RAM runs in Gear 1; RigScope can't read this." } ],
+      "recommendation": "Make sure the memory controller runs in Gear 1. If it can't hold Gear 1 at this speed, Gear 1 at 2933 beats Gear 2 at 3200.",
+      "why": "Intel officially supports Gear 1 only up to DDR4-2933 on most 11th-gen chips. Many boards still run 3000–3200 in Gear 1, but if yours fell back to Gear 2, memory latency rises and CPU-bound games lose about 5–10%.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [ "Check with HWiNFO (Memory › Gear mode) or in the BIOS (ASUS: Ai Tweaker › DRAM Timing › Gear mode / \"Memory Controller : DRAM Frequency Ratio\" = 1:1)." ],
+      "sources": [ { "title": "PC Gamer: Intel Gear 1 vs Gear 2", "url": "https://www.pcgamer.com/intel-memory-gear-1-vs-gear-2-pc-gaming/", "date": "2021" } ]
+    },
+    {
+      "id": "firmware.amd-x3d-dual-ccd",
+      "title": "AMD X3D with two CCDs",
+      "category": "firmware",
+      "appliesWhen": { "path": "cpu.name", "matches": "(7900|7950|9900|9950)X3D" },
+      "current": "{cpu.name}",
+      "outcomes": [ { "status": "info", "summary": "Games need to land on the V-Cache cores. Check the chipset driver and Game Bar." } ],
+      "recommendation": "Install the latest AMD chipset driver, keep Game Mode and Xbox Game Bar installed and up to date, and keep Windows on Balanced.",
+      "why": "Only one of the two chiplets has 3D V-Cache. AMD's driver uses Game Bar's game detection to park the other cores while you play. Without it, games can run on the wrong cores and lose a lot of performance.",
+      "impact": "large",
+      "evidence": "high",
+      "steps": [ "Download the latest chipset driver from amd.com › Drivers › Chipsets.", "Settings › Gaming › Game Mode › On; keep the Xbox Game Bar app installed." ]
+    },
+    {
+      "id": "firmware.intel-hybrid",
+      "title": "Intel P-cores and E-cores",
+      "category": "firmware",
+      "appliesWhen": { "path": "cpu.isHybrid", "eq": true },
+      "current": "{cpu.performanceCores} P-cores + {cpu.efficiencyCores} E-cores",
+      "outcomes": [
+        { "when": { "path": "os.isWindows11", "eq": false }, "status": "suggest", "summary": "Windows 10 schedules hybrid CPUs worse than Windows 11." },
+        { "status": "info", "summary": "Windows 11 and Thread Director handle this; don't disable E-cores by default." }
+      ],
+      "recommendation": "Use Windows 11, keep Game Mode on, and use Balanced or High performance. Disable E-cores only to test a specific stutter problem.",
+      "why": "Windows 11 uses Intel Thread Director to keep the game on P-cores. Disabling E-cores helps a few older games but often costs performance elsewhere.",
+      "impact": "small",
+      "evidence": "medium"
+    },
+    {
+      "id": "firmware.laptop-power",
+      "title": "Laptop on battery",
+      "category": "firmware",
+      "appliesWhen": { "path": "firmware.isLaptop", "eq": true },
+      "current": "{windows.onBattery|bool:On battery/Plugged in}",
+      "outcomes": [
+        { "when": { "path": "windows.onBattery", "eq": true }, "status": "warn", "summary": "Running on battery. GPU and CPU are heavily limited." },
+        { "status": "info", "summary": "Plugged in. Check the dedicated GPU is used." }
+      ],
+      "recommendation": "Play plugged in, and use the dedicated GPU (MUX switch / dGPU-only mode if the laptop has one).",
+      "why": "On battery, gaming laptops cut GPU power a lot. A MUX switch sends the image straight from the dedicated GPU, which removes a copy through the integrated GPU and adds FPS.",
+      "impact": "large",
+      "evidence": "high",
+      "steps": [ "Plug in the charger.", "In the laptop's control app (Armoury Crate, Legion Space, Omen Gaming Hub…) set GPU mode to dGPU / Ultimate / Discrete." ]
+    },
+    {
+      "id": "firmware.disable-smt",
+      "title": "Disable Hyper-Threading / SMT for more FPS",
+      "category": "firmware",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "Results are mixed and mostly from unreliable leaderboards." } ],
+      "recommendation": "Leave it on.",
+      "why": "A few games gain a little with it off on some CPUs; others lose. Background tasks (voice chat, browsers, anti-cheat) run worse with fewer threads.",
+      "impact": "none",
+      "evidence": "low"
+    },
+    {
+      "id": "firmware.disable-cstates",
+      "title": "Disable C-states and SpeedStep",
+      "category": "firmware",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "No solid evidence it helps on modern CPUs." } ],
+      "recommendation": "Leave power-saving states at their defaults.",
+      "why": "Modern CPUs wake from idle states in microseconds, and the fastest cores boost higher when others rest. Disabling them raises heat and power, which can lower boost clocks.",
+      "impact": "none",
+      "evidence": "low"
+    },
+    {
+      "id": "firmware.polling-rate",
+      "title": "8000 Hz mouse polling for an edge",
+      "category": "firmware",
+      "kind": "myth",
+      "outcomes": [ { "status": "myth", "summary": "1000–2000 Hz is plenty; higher can cost FPS and cause stutter." } ],
+      "recommendation": "Use 1000 Hz, or 2000 Hz if your mouse supports it. Plug it into a rear USB port on the motherboard.",
+      "why": "Above 2000 Hz the CPU handles thousands of interrupts per second. Many players report lower FPS and stutter at 4000–8000 Hz, and the latency gain over 1000 Hz is under a millisecond. Evidence is mostly vendor blogs and forum posts.",
+      "impact": "none",
+      "evidence": "low"
+    },
+
+    // ───────────────────────────── Storage ─────────────────────────────
+    {
+      "id": "storage.system-free",
+      "title": "Free space on the Windows drive",
+      "category": "storage",
+      "appliesWhen": { "path": "drives[isSystem=true]", "countGte": 1 },
+      "current": "{drives[isSystem=true].freeBytes|gb} free of {drives[isSystem=true].totalBytes|gb}",
+      "outcomes": [
+        { "when": { "path": "drives[isSystem=true].freePercent", "lt": 10 }, "status": "warn", "summary": "Less than 10% free on {drives[isSystem=true].letter}." },
+        { "status": "good", "summary": "{drives[isSystem=true].freeBytes|gb} free." }
+      ],
+      "recommendation": "Keep at least 10–15% of the Windows drive free.",
+      "why": "Windows updates, the shader cache and game patches need room. A nearly full SSD also slows down writes.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [ "Open RigScope's Storage tab to see what takes the most space." ]
+    },
+    {
+      "id": "storage.game-on-hdd",
+      "title": "Game drive type",
+      "category": "storage",
+      "appliesWhen": { "path": "game.installed", "eq": true },
+      "current": "{game.name} on {game.drive} ({game.driveMediaType|default:unknown type})",
+      "outcomes": [
+        { "when": { "path": "game.driveMediaType", "eq": "HDD" }, "status": "suggest", "summary": "{game.name} is on a hard drive." },
+        { "when": { "path": "game.driveMediaType", "eq": "SSD" }, "status": "good", "summary": "{game.name} is on an SSD." }
+      ],
+      "recommendation": "Install competitive games on an SSD.",
+      "why": "Hard drives make loading slow and can cause stutter when the game streams textures or sounds mid-match.",
+      "impact": "medium",
+      "evidence": "high",
+      "steps": [ "Steam: right-click the game › Properties › Installed Files › Move install folder." ]
+    },
+    {
+      "id": "storage.game-drive-free",
+      "title": "Room for game updates",
+      "category": "storage",
+      "appliesWhen": { "path": "game.driveFreeBytes", "exists": true },
+      "current": "{game.driveFreeBytes|gb} free on {game.drive}",
+      "outcomes": [
+        { "when": { "path": "game.driveFreeBytes", "lt": 32212254720 }, "status": "suggest", "summary": "Less than 30 GB free where {game.name} is installed." }
+      ],
+      "recommendation": "Keep at least 30 GB free on the game's drive.",
+      "why": "Big patches are downloaded and then unpacked next to the old files, so an update can need far more space than its download size.",
+      "impact": "small",
+      "evidence": "medium"
+    },
+    {
+      "id": "storage.hiberfil",
+      "title": "Hibernation file",
+      "category": "storage",
+      "appliesWhen": { "all": [ { "path": "windows.hiberfilBytes", "gt": 4294967296 }, { "path": "firmware.isLaptop", "eq": false } ] },
+      "current": "{windows.hiberfilBytes|gb}",
+      "outcomes": [ { "status": "info", "summary": "hiberfil.sys uses {windows.hiberfilBytes|gb}. Only needed for Hibernate and Fast Startup." } ],
+      "recommendation": "If you never hibernate the PC, turn hibernation off to get the space back.",
+      "why": "On a desktop, hibernation is rarely used. Fast Startup uses the same file; turning it off makes cold boots a few seconds slower but avoids some driver and dual-boot quirks.",
+      "impact": "none",
+      "evidence": "high",
+      "steps": [ "Open Terminal as administrator and run: powercfg /h off", "Windows deletes the file itself. Never delete it by hand." ],
+      "undo": "Run powercfg /h on as administrator."
+    },
+
+    // ───────────────────────────── CS2 in-game ─────────────────────────────
+    {
+      "id": "cs2.reflex",
+      "title": "NVIDIA Reflex in CS2",
+      "category": "inGame",
+      "games": ["cs2"],
+      "appliesWhen": { "all": [ { "path": "cs2.primary.video.r_low_latency", "exists": true }, { "path": "gpu.vendor", "eq": "nvidia" } ] },
+      "current": "{cs2.primary.video.r_low_latency|map:0=Off;1=Enabled;2=Enabled + Boost}",
+      "outcomes": [
+        { "when": { "path": "cs2.primary.video.r_low_latency", "eq": "0" }, "status": "suggest", "summary": "Reflex is off." },
+        { "when": { "path": "cs2.primary.video.r_low_latency", "eq": "2" }, "status": "good", "summary": "Reflex is on with Boost." },
+        { "status": "good", "summary": "Reflex is on." }
+      ],
+      "recommendation": "Keep Reflex on (Enabled). Try Enabled + Boost only if frame-time logs show you're CPU-bound, and check the result.",
+      "why": "Reflex stops frames from queuing up behind the GPU, which cuts input latency. Boost also keeps GPU clocks high; the difference between the two is about a millisecond or less in measurements.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [ "CS2 › Settings › Video › Advanced Video › NVIDIA Reflex Low Latency › Enabled." ],
+      "sources": [ { "title": "NVIDIA Reflex low latency platform", "url": "https://www.nvidia.com/en-us/geforce/news/reflex-low-latency-platform/", "date": "2020" } ]
+    },
+    {
+      "id": "cs2.anti-lag-2",
+      "title": "AMD Anti-Lag 2 in CS2",
+      "category": "inGame",
+      "games": ["cs2"],
+      "appliesWhen": { "path": "gpu.vendor", "eq": "amd" },
+      "outcomes": [ { "status": "info", "summary": "CS2 supports AMD Anti-Lag 2. Check that it's on." } ],
+      "recommendation": "Turn on AMD Anti-Lag 2 in CS2's video settings (needs a recent AMD driver and an RX 5000-series or newer card).",
+      "why": "Anti-Lag 2 is AMD's in-game latency reducer, the equivalent of Reflex. The older driver-level Anti-Lag doesn't apply when the in-game version is on.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [ "CS2 › Settings › Video › Advanced Video › AMD Anti-Lag 2 › Enabled." ]
+    },
+    {
+      "id": "cs2.vsync",
+      "title": "V-Sync in CS2",
+      "category": "inGame",
+      "games": ["cs2"],
+      "appliesWhen": { "path": "cs2.primary.video.mat_vsync", "exists": true },
+      "current": "{cs2.primary.video.mat_vsync|map:0=Off;1=On}",
+      "outcomes": [
+        { "when": { "path": "cs2.primary.video.mat_vsync", "ne": "0" }, "status": "suggest", "summary": "V-Sync is on in the game." },
+        { "status": "good", "summary": "V-Sync is off in the game." }
+      ],
+      "recommendation": "Keep V-Sync off in CS2. If you use G-SYNC/FreeSync, turn V-Sync on in the graphics driver instead.",
+      "why": "In-game V-Sync without variable refresh adds a lot of input lag. With G-SYNC, the recommended setup is V-Sync in the driver plus Reflex, which caps FPS just below the refresh rate.",
+      "impact": "large",
+      "evidence": "high",
+      "steps": [ "CS2 › Settings › Video › Advanced Video › Wait for Vertical Sync › Disabled." ],
+      "sources": [ { "title": "Blur Busters: G-SYNC 101", "url": "https://blurbusters.com/gsync/gsync101-input-lag-tests-and-settings/14/", "date": "2019" } ]
+    },
+    {
+      "id": "cs2.fps-cap",
+      "title": "FPS cap (fps_max)",
+      "category": "inGame",
+      "games": ["cs2"],
+      "kind": "preference",
+      "appliesWhen": { "path": "cs2.primary", "exists": true },
+      "current": "{cs2.primary.fpsMax|map:0=Uncapped (0)|default:Game default (400)} — set in {cs2.primary.fpsMaxSource}",
+      "outcomes": [ { "status": "info", "summary": "Match the cap to your sync choice." } ],
+      "recommendation": "With G-SYNC + Reflex: fps_max 0 and let Reflex cap. Without sync: 0 (uncapped) or a cap you can hold in heavy fights.",
+      "why": "A cap you can't hold makes frame times uneven. Uncapped is fine if your 1% lows stay well above your refresh rate. With G-SYNC, Reflex automatically caps a few FPS below the refresh rate (about 158 at 165 Hz) to stay inside the variable refresh range.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [ "Set it in the console (fps_max 0), in Steam launch options (+fps_max 0) or in CS2 › Settings › Video › Advanced Video › Maximum FPS." ]
+    },
+    {
+      "id": "cs2.display-mode",
+      "title": "Display mode in CS2",
+      "category": "inGame",
+      "games": ["cs2"],
+      "appliesWhen": { "path": "cs2.primary.video.fullscreen", "exists": true },
+      "current": "{cs2.primary.video.fullscreen|map:1=Fullscreen;0=Windowed / fullscreen windowed}",
+      "outcomes": [
+        { "when": { "path": "cs2.primary.video.fullscreen", "eq": "1" }, "status": "good", "summary": "Exclusive fullscreen." },
+        { "status": "suggest", "summary": "CS2 runs windowed or fullscreen windowed." }
+      ],
+      "recommendation": "Use Fullscreen.",
+      "why": "Fullscreen is never slower than borderless in CS2 and avoids the desktop compositor adding latency. Borderless is mainly useful if you alt-tab a lot.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [ "CS2 › Settings › Video › Display Mode › Fullscreen." ]
+    },
+    {
+      "id": "cs2.refresh-rate",
+      "title": "Refresh rate set in CS2",
+      "category": "inGame",
+      "games": ["cs2"],
+      "appliesWhen": { "all": [ { "path": "cs2.primary.configuredRefreshHz", "exists": true }, { "path": "display.maxRefreshHz", "gt": 0 } ] },
+      "current": "{cs2.primary.configuredRefreshHz} Hz (monitor max {display.maxRefreshHz} Hz)",
+      "outcomes": [
+        { "when": { "path": "cs2.primary.configuredRefreshHz", "lt": "{display.maxRefreshHz}" }, "status": "warn", "summary": "CS2 is set to {cs2.primary.configuredRefreshHz} Hz." },
+        { "status": "good", "summary": "CS2 uses {cs2.primary.configuredRefreshHz} Hz." }
+      ],
+      "recommendation": "Pick your monitor's highest refresh rate in CS2's video settings.",
+      "why": "In fullscreen CS2 switches the monitor to the rate saved in its own config, which can be lower than Windows' setting after a monitor change.",
+      "impact": "large",
+      "evidence": "high",
+      "steps": [ "CS2 › Settings › Video › Refresh Rate › highest value." ]
+    },
+    {
+      "id": "cs2.boost-player-contrast",
+      "title": "Boost Player Contrast",
+      "category": "inGame",
+      "games": ["cs2"],
+      "appliesWhen": { "path": "cs2.primary", "exists": true },
+      "current": "{cs2.primary.playerContrast|map:1=Enabled;0=Disabled|default:Not found in config}",
+      "outcomes": [
+        { "when": { "path": "cs2.primary.playerContrast", "eq": "1" }, "status": "good", "summary": "Enabled." },
+        { "when": { "path": "cs2.primary.playerContrast", "eq": "0" }, "status": "suggest", "summary": "Disabled." },
+        { "status": "info", "summary": "RigScope couldn't find this setting. Check it's Enabled." }
+      ],
+      "recommendation": "Enable Boost Player Contrast.",
+      "why": "It makes player models stand out against the map with a small performance cost. Most pros use it.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [ "CS2 › Settings › Video › Advanced Video › Boost Player Contrast › Enabled." ],
+      "sources": [ { "title": "ProSettings: CS2 options guide", "url": "https://prosettings.net/guides/cs2-options/", "date": "2026" } ]
+    },
+    {
+      "id": "cs2.dynamic-shadows",
+      "title": "Dynamic shadows",
+      "category": "inGame",
+      "games": ["cs2"],
+      "appliesWhen": { "path": "cs2.primary.video.videocfg_dynamic_shadows", "exists": true },
+      "current": "{cs2.primary.video.videocfg_dynamic_shadows|map:1=All (likely);0=Sun only (likely)}",
+      "outcomes": [
+        { "when": { "path": "cs2.primary.video.videocfg_dynamic_shadows", "eq": "0" }, "status": "suggest", "summary": "Probably set to Sun only." },
+        { "status": "good", "summary": "Probably set to All. Check it in the menu to be sure." }
+      ],
+      "recommendation": "Set Dynamic Shadows to All.",
+      "why": "With All, players cast shadows from lamps and other artificial lights, so you can spot someone around a corner before you see them. The config value mapping isn't documented by Valve, so check the menu.",
+      "impact": "large",
+      "evidence": "medium",
+      "steps": [ "CS2 › Settings › Video › Advanced Video › Dynamic Shadows › All." ]
+    },
+    {
+      "id": "cs2.anti-aliasing",
+      "title": "Anti-aliasing",
+      "category": "inGame",
+      "games": ["cs2"],
+      "kind": "preference",
+      "appliesWhen": { "path": "cs2.primary.video.msaa_samples", "exists": true },
+      "current": "{cs2.primary.video.msaa_samples|map:0=None or CMAA2;2=2x MSAA;4=4x MSAA;8=8x MSAA}",
+      "outcomes": [
+        { "when": { "path": "cs2.primary.video.msaa_samples", "eq": "8" }, "status": "suggest", "summary": "8x MSAA costs a lot of FPS for little visible gain over 4x." },
+        { "status": "info", "summary": "A trade-off between sharp edges and FPS." }
+      ],
+      "recommendation": "4x MSAA for clean edges on distant players, or 2x / CMAA2 if you need FPS. Compare your 1% lows.",
+      "why": "MSAA is usually the biggest GPU cost in CS2's settings: 4x costs roughly 10–20%. Smooth edges make far-away heads easier to read; CMAA2 is cheaper but softer.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [ "CS2 › Settings › Video › Advanced Video › Multisampling Anti-Aliasing Mode." ]
+    },
+    {
+      "id": "cs2.fsr",
+      "title": "FidelityFX Super Resolution",
+      "category": "inGame",
+      "games": ["cs2"],
+      "appliesWhen": { "path": "cs2.primary.video.videocfg_fsr_detail", "exists": true },
+      "current": "{cs2.primary.video.videocfg_fsr_detail|map:0=Off}",
+      "outcomes": [
+        { "when": { "path": "cs2.primary.video.videocfg_fsr_detail", "ne": "0" }, "status": "suggest", "summary": "FSR is on, which blurs the image." },
+        { "status": "good", "summary": "Off." }
+      ],
+      "recommendation": "Keep FSR off unless your GPU can't reach your target FPS any other way.",
+      "why": "FSR renders at a lower resolution and upscales, which softens distant players.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [ "CS2 › Settings › Video › Advanced Video › FidelityFX Super Resolution › Disabled (Highest Quality)." ]
+    },
+    {
+      "id": "cs2.resolution",
+      "title": "Resolution: stretched or native",
+      "category": "inGame",
+      "games": ["cs2"],
+      "kind": "preference",
+      "appliesWhen": { "path": "cs2.primary.video.defaultres", "exists": true },
+      "current": "{cs2.primary.video.defaultres}x{cs2.primary.video.defaultresheight} (monitor {display.width}x{display.height})",
+      "outcomes": [ { "status": "info", "summary": "Personal preference. Most pros use 4:3 stretched; native shows more detail." } ],
+      "recommendation": "Use what you aim best with.",
+      "why": "About three quarters of pros play 4:3 (mostly 1280x960). Stretched makes models wider and raises FPS; native gives a sharper image and a wider view. If you stretch, set scaling to Full-screen on the GPU in NVIDIA Control Panel › Adjust desktop size and position.",
+      "impact": "small",
+      "evidence": "low",
+      "sources": [ { "title": "ProSettings: CS2 options guide", "url": "https://prosettings.net/guides/cs2-options/", "date": "2026" } ]
+    },
+    {
+      "id": "cs2.net-buffer",
+      "title": "Buffering to smooth over packet loss",
+      "category": "inGame",
+      "games": ["cs2"],
+      "appliesWhen": { "path": "cs2.primary", "exists": true },
+      "current": "{cs2.primary.netBufferTicks|map:0=None;1=1 packet;2=2 packets|default:None (default)}",
+      "outcomes": [
+        { "when": { "all": [ { "path": "cs2.primary.netBufferTicks", "gt": 0 }, { "path": "network[isDefaultRoute=true].kind", "eq": "ethernet" } ] },
+          "status": "suggest", "summary": "Buffering is on while you're on a wired connection." },
+        { "when": { "path": "cs2.primary.netBufferTicks", "gt": 0 }, "status": "info", "summary": "Buffering is on. That's reasonable on Wi-Fi with packet loss." },
+        { "status": "good", "summary": "No buffering." }
+      ],
+      "recommendation": "Set it to None on a clean wired connection.",
+      "why": "Each buffered packet adds about one tick (around 16 ms) of delay. It only helps if your connection actually drops packets; check CS2's telemetry (Settings › Game › Telemetry) for packet loss first.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [ "CS2 › Settings › Game › Game › Buffering to smooth over packet loss › None." ]
+    },
+    {
+      "id": "cs2.max-ping",
+      "title": "Max acceptable matchmaking ping",
+      "category": "inGame",
+      "games": ["cs2"],
+      "appliesWhen": { "path": "cs2.primary", "exists": true },
+      "current": "{cs2.primary.maxPing|default:150 (default)} ms",
+      "outcomes": [
+        { "when": { "path": "cs2.primary.maxPing", "lte": 90 }, "status": "good", "summary": "Capped at {cs2.primary.maxPing} ms." },
+        { "status": "info", "summary": "Lowering it gets you closer servers, at the cost of longer queues." }
+      ],
+      "recommendation": "Try 50–80 ms if you live near servers.",
+      "why": "Matchmaking can put you on a far-away server with the default of 150 ms. A lower cap keeps you on closer servers; queues may take longer.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [ "CS2 › Settings › Game › Game › Max Acceptable Matchmaking Ping." ]
+    },
+    {
+      "id": "cs2.launch-options",
+      "title": "CS2 launch options",
+      "category": "inGame",
+      "games": ["cs2"],
+      "appliesWhen": { "path": "cs2.primary", "exists": true },
+      "current": "{cs2.primary.launchOptions|default:none}",
+      "outcomes": [
+        { "when": { "path": "cs2.primary.launchOptions", "matches": "(^|\\s)-high(\\s|$)" }, "status": "suggest", "summary": "-high forces high priority, which can starve audio and input." },
+        { "when": { "path": "cs2.primary.launchOptions", "matches": "(^|\\s)-(threads|tickrate|d3d9ex|limitvsconst|nojoy|novid|processheap)(\\s|$)" }, "status": "info", "summary": "Some of these options do nothing in CS2 (harmless)." },
+        { "status": "good", "summary": "Nothing obsolete or harmful." }
+      ],
+      "recommendation": "Keep launch options minimal. Useful ones: +fps_max, -fullscreen, -allow_third_party_software (needed for OBS game capture), +exec autoexec.",
+      "why": "Most launch options from CS:GO guides do nothing in CS2. -threads and -tickrate are ignored, -nojoy and -novid are leftovers, and -high can hurt.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [ "Steam › right-click Counter-Strike 2 › Properties › General › Launch options." ]
+    },
+
+    // ───────────────────────────── Other competitive games (basic profiles) ─────────────────────────────
+    {
+      "id": "game.reflex",
+      "title": "NVIDIA Reflex in {game.name}",
+      "category": "inGame",
+      "games": ["valorant", "apex", "overwatch2", "fortnite", "r6siege", "marvelrivals"],
+      "appliesWhen": { "path": "gpu.vendor", "eq": "nvidia" },
+      "outcomes": [ { "status": "info", "summary": "{game.name} supports Reflex. Check it's on." } ],
+      "recommendation": "Turn on NVIDIA Reflex (Enabled, or Enabled + Boost if you're CPU-bound) in {game.name}'s video settings.",
+      "why": "Reflex keeps the render queue empty, which lowers input latency, especially when the GPU is fully loaded.",
+      "impact": "medium",
+      "evidence": "high",
+      "steps": [ "{game.name} › Settings › Video/Graphics › NVIDIA Reflex Low Latency." ],
+      "sources": [ { "title": "NVIDIA Reflex low latency platform", "url": "https://www.nvidia.com/en-us/geforce/news/reflex-low-latency-platform/", "date": "2020" } ]
+    },
+    {
+      "id": "game.amd-latency",
+      "title": "AMD latency reduction in {game.name}",
+      "category": "inGame",
+      "games": ["valorant", "apex", "overwatch2", "fortnite", "r6siege", "marvelrivals"],
+      "appliesWhen": { "path": "gpu.vendor", "eq": "amd" },
+      "outcomes": [ { "status": "info", "summary": "Use the in-game Anti-Lag 2 option if {game.name} has one, otherwise Radeon Anti-Lag in AMD Software." } ],
+      "recommendation": "Turn on Anti-Lag 2 in the game if listed, otherwise Radeon Anti-Lag for this game in AMD Software.",
+      "why": "Anti-Lag 2 needs the game to support it; the driver-level Radeon Anti-Lag works in most DirectX 11/12 games.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [ "AMD Software › Gaming › {game.name} › Radeon Anti-Lag › On." ]
+    },
+    {
+      "id": "game.fullscreen",
+      "title": "Fullscreen mode in {game.name}",
+      "category": "inGame",
+      "games": ["valorant", "apex", "overwatch2", "fortnite", "r6siege", "marvelrivals"],
+      "outcomes": [ { "status": "info", "summary": "RigScope doesn't read {game.name}'s config yet. Check display mode, V-Sync and frame cap." } ],
+      "recommendation": "Use Fullscreen, V-Sync off in the game, and cap FPS in the game (or let Reflex cap with G-SYNC).",
+      "why": "The same rules as CS2 apply: exclusive fullscreen keeps latency low, in-game V-Sync adds lag without variable refresh, and an in-game cap beats a driver cap.",
+      "impact": "medium",
+      "evidence": "medium",
+      "steps": [ "{game.name} › Settings › Video › Display Mode › Fullscreen.", "Config files live in {game.configHint}." ]
+    }
+  ]
+}

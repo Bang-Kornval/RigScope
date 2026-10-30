@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RigScope.App/RigScope.App.csproj" />
+    <Project Path="src/RigScope.Cli/RigScope.Cli.csproj" />
+    <Project Path="src/RigScope.Core/RigScope.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RigScope.Core.Tests/RigScope.Core.Tests.csproj" />
+  </Folder>
+</Solution>
