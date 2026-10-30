@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using RigScope.Core.Games;
+using RigScope.Core.Peripherals;
 using RigScope.Core.Rules;
 using RigScope.Core.Snapshot;
 using RigScope.Core.Storage;
@@ -38,6 +39,8 @@ public static partial class ReportBuilder
         if (options.IncludeGood) Section(md, "Already good", findings.Where(f => f.Status == FindingStatus.Good), detailed: false);
         if (options.IncludeMyths) Section(md, "Skip these (myths)", findings.Where(f => f.Status == FindingStatus.Myth), detailed: false);
 
+        PeripheralSection(md, s);
+
         if (options.IncludeStorage && cleanup is { Count: > 0 })
         {
             md.AppendLine("**Storage: where to look first**");
@@ -49,6 +52,32 @@ public static partial class ReportBuilder
         md.AppendLine("*Made with RigScope. It only reads settings; it never changes anything.*");
         var text = md.ToString();
         return options.Redact ? Redact(text, s) : text;
+    }
+
+    /// <summary>Devices and suites, one line each. Names and vendor/product ids only: never serial numbers or instance ids.</summary>
+    private static void PeripheralSection(StringBuilder md, SystemSnapshot s)
+    {
+        if (s.Peripherals.Count == 0 && s.Suites.Count == 0) return;
+        md.AppendLine("**Peripherals**");
+        foreach (var p in s.Peripherals)
+        {
+            var onboard = p.OnboardMemory switch { OnboardMemory.Yes => "yes", OnboardMemory.No => "no", _ => "check" };
+            var via = p.ViaReceiver ? ", via receiver" : p.Bluetooth ? ", Bluetooth" : "";
+            md.AppendLine($"- {p.DisplayName} ({PeripheralCatalogue.KindText(p.Kind)}{via}) · {(p.SuiteName.Length > 0 ? p.SuiteName : "no suite")} · settings on the device: {onboard}");
+        }
+        foreach (var x in s.Suites)
+        {
+            var state = (x.Running, x.StartsWithWindows) switch
+            {
+                (true, true) => "running, starts with Windows",
+                (true, false) => "running",
+                (false, true) => "starts with Windows",
+                _ => "not running",
+            };
+            var verdict = x.NeededForAlwaysOn switch { true => "keep it running", false => "not needed all the time", null => "check" };
+            md.AppendLine($"- {x.Name}: {state} → {verdict}{(x.Reasons.Count > 0 ? $" ({x.Reason})" : "")}");
+        }
+        md.AppendLine();
     }
 
     private static void Section(StringBuilder md, string heading, IEnumerable<Finding> items, bool detailed)

@@ -9,6 +9,7 @@
     <Window.Resources>
         <DataTemplate DataType="{x:Type vm:OverviewViewModel}"><views:OverviewView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:CheckViewModel}"><views:CheckView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:PeripheralsViewModel}"><views:PeripheralsView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:StorageViewModel}"><views:StorageView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:MeasureViewModel}"><views:MeasureView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:ReportViewModel}"><views:ReportView /></DataTemplate>

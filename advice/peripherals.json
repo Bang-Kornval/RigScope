@@ -1,0 +1,219 @@
+{
+  // RigScope peripheral catalogue. Read by src/RigScope.Core/Peripherals/PeripheralCatalogue.cs.
+  // - suites: ids must match KnownAppsProbe.Catalogue so RigScope knows whether they run and start with Windows.
+  //   noDevice = what it means when no device of that vendor is connected: "notNeeded" only for suites that drive
+  //   nothing but peripherals; "unknown" when the suite may also control RAM, fans or the motherboard.
+  //   features[].inUseWhen is a regex on Windows device names (Device Manager), e.g. Sonar's virtual audio devices.
+  // - vendors: USB vendor ids → suite. requireName is for ids shared with other products (HP, Atmel).
+  //   Device families match by name regex first, product id second.
+  //   onboardMemory: yes / no / unknown. Only write "yes" or "no" when an official page says so; otherwise "unknown".
+  //   Unknown models from a known vendor get the vendor's fallback, which must say "check", not guess.
+  //   Product ids under "pids" were seen in a real Windows device list; they are a second way to match, not a spec.
+  // - Vendor ids: http://www.linux-usb.org/usb.ids (2026-06-26) unless a vendor lists its own source.
+  "version": "2026.10.31",
+  "updated": "2026-10-31",
+  "suites": [
+    { "id": "ghub", "name": "Logitech G HUB", "noDevice": "notNeeded" },
+    {
+      "id": "steelseries", "name": "SteelSeries GG", "noDevice": "notNeeded",
+      "notes": "GG also contains Sonar, which works with any headset, and Moments clip recording.",
+      "features": [
+        {
+          // Sonar's playback devices. RigScope counts them only when Windows reports them as working.
+          "name": "SteelSeries Sonar", "inUseWhen": "^SteelSeries Sonar - (Gaming|Chat|Media|Aux)\\b", "evidence": "medium",
+          "sources": [
+            { "title": "SteelSeries: ChatMix not working (Sonar needs to be running)", "url": "https://support.steelseries.com/hc/en-us/articles/34381404253581-ChatMix-Not-Working", "date": "updated 2026-10-28" },
+            { "title": "SteelSeries: what specs do I need to use Sonar", "url": "https://support.steelseries.com/hc/en-us/articles/16953635349517-What-specs-do-I-need-to-use-Sonar", "date": "updated 2026-10-15" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "icue", "name": "Corsair iCUE", "noDevice": "unknown",
+      "notes": "iCUE can also control Corsair RAM lighting, coolers and fans, which RigScope can't always see."
+    },
+    { "id": "razer", "name": "Razer Synapse", "noDevice": "notNeeded" },
+    {
+      "id": "armoury", "name": "ASUS Armoury Crate", "noDevice": "unknown",
+      "notes": "Armoury Crate also handles fan profiles, laptop performance modes and driver updates on some PCs. Check you don't rely on those before stopping it."
+    },
+    {
+      "id": "msicenter", "name": "MSI Center / Mystic Light", "noDevice": "unknown",
+      "notes": "MSI Center also handles fan and performance modes on some PCs. Check you don't rely on those before stopping it."
+    },
+    {
+      "id": "nzxt", "name": "NZXT CAM", "noDevice": "unknown",
+      "notes": "CAM can also run cooler pump and fan curves. Check how your cooler behaves without it before stopping it."
+    },
+    { "id": "hyperx", "name": "HyperX NGENUITY", "noDevice": "notNeeded" },
+    { "id": "wooting", "name": "Wootility", "noDevice": "notNeeded" }
+  ],
+  "vendors": [
+    {
+      "id": "logitech", "name": "Logitech", "vendorIds": [ "046D" ], "suite": "ghub",
+      "supportUrl": "https://support.logi.com/hc/en-gb/articles/6505257646743-Enable-On-Board-Memory-mode-on-your-gaming-mouse-with-Logitech-G-HUB",
+      "fallback": {
+        "onboardMemory": "unknown", "evidence": "low",
+        "notes": "Many Logitech G mice can save a profile with On-Board Memory mode in G HUB. Check whether yours has that option.",
+        "sources": [
+          { "title": "Logitech: enable On-Board Memory mode with G HUB", "url": "https://support.logi.com/hc/en-gb/articles/6505257646743-Enable-On-Board-Memory-mode-on-your-gaming-mouse-with-Logitech-G-HUB", "date": "undated, checked 2026-10-31" }
+        ]
+      },
+      "families": [
+        {
+          "id": "logitech-pro-2-lightspeed", "displayName": "Logitech PRO 2 LIGHTSPEED", "match": "^PRO 2 LIGHTSPEED\\b", "pids": [ "C543" ], "kind": "mouse",
+          "onboardMemory": "yes", "evidence": "high",
+          "featuresNeedingSuite": [ "per-game profiles (Automatic Game Detection)" ],
+          "notes": "Up to 5 onboard profiles. Turn on On-Board Memory mode in G HUB and save your profile to the mouse. Logitech doesn't list which settings a PRO 2 profile holds, so check DPI, polling rate and lighting after a restart without G HUB.",
+          "sources": [
+            { "title": "Logitech: PRO 2 LIGHTSPEED specifications (5 hardware memory profiles)", "url": "https://support.logi.com/hc/en-us/articles/23606093770263-Specification-PRO-2-LIGHTSPEED-Wireless-Gaming-Mouse", "date": "undated, checked 2026-10-31" },
+            { "title": "Logitech: enable On-Board Memory mode with G HUB", "url": "https://support.logi.com/hc/en-gb/articles/6505257646743-Enable-On-Board-Memory-mode-on-your-gaming-mouse-with-Logitech-G-HUB", "date": "undated, checked 2026-10-31" },
+            { "title": "Logitech: Automatic Game Detection mode (per-game profiles in G HUB)", "url": "https://support.logi.com/hc/en-us/articles/6505616660759-Enable-Automatic-Game-Detection-mode-on-your-gaming-mouse-with-Logitech-G-HUB", "date": "undated, checked 2026-10-31" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "steelseries", "name": "SteelSeries", "vendorIds": [ "1038" ], "suite": "steelseries",
+      "supportUrl": "https://support.steelseries.com/",
+      "fallback": {
+        "onboardMemory": "unknown", "evidence": "low",
+        "notes": "Check in SteelSeries GG whether this device keeps its settings on the device. Prism lighting effects never save to the device.",
+        "sources": [
+          { "title": "SteelSeries: does Prism illumination save to my device", "url": "https://support.steelseries.com/hc/en-us/articles/15897967681805-Does-Prism-illumination-save-to-my-device", "date": "updated 2026-10-20" }
+        ]
+      },
+      "families": [
+        {
+          "id": "steelseries-apex-pro-tkl", "displayName": "SteelSeries Apex Pro TKL", "match": "\\bApex Pro TKL\\b", "pids": [ "1614" ], "kind": "keyboard",
+          "onboardMemory": "yes", "evidence": "medium",
+          "featuresNeedingSuite": [ "Prism lighting effects" ],
+          "notes": "Five onboard profiles, switchable from the OLED menu. Actuation can be changed on the keyboard itself (OLED menu, or SteelSeries key + O/I on the 2023 models). SteelSeries doesn't say whether per-key actuation and custom lighting are part of a saved profile, so check after a restart without GG.",
+          "sources": [
+            { "title": "SteelSeries: Apex Pro / Apex Pro TKL features and user manual", "url": "https://support.steelseries.com/hc/en-us/articles/360030177951-Apex-Pro-Apex-Pro-TKL-Features-User-Manual", "date": "updated 2026-10-27" },
+            { "title": "SteelSeries: change the actuation point on the Apex Pro TKL 2023", "url": "https://support.steelseries.com/hc/en-us/articles/9645931478029-How-do-I-change-the-actuation-point-on-my-Apex-Pro-TKL-2023-Wired-Wireless", "date": "updated 2026-09-30" },
+            { "title": "SteelSeries: keyboards on Linux (five onboard profiles)", "url": "https://support.steelseries.com/hc/en-us/articles/24541773432205-Linux-Keyboard-Compatibility", "date": "updated 2026-10-29" },
+            { "title": "SteelSeries: does Prism illumination save to my device", "url": "https://support.steelseries.com/hc/en-us/articles/15897967681805-Does-Prism-illumination-save-to-my-device", "date": "updated 2026-10-20" }
+          ]
+        },
+        {
+          "id": "steelseries-arctis-nova-pro-wireless", "displayName": "SteelSeries Arctis Nova Pro Wireless", "match": "\\bArctis Nova Pro Wireless\\b", "pids": [ "12E0" ], "kind": "headset",
+          // The base station can pick EQ presets and set sidetone, but SteelSeries doesn't say custom EQ is stored on it.
+          "onboardMemory": "unknown", "evidence": "medium",
+          "featuresNeedingSuite": [ "ChatMix on PC", "Sonar EQ and spatial audio" ],
+          "notes": "On PC, ChatMix works through GG and Sonar. The base station can switch EQ presets and sidetone on its own. Without Sonar the headset plays as a normal USB sound device.",
+          "sources": [
+            { "title": "SteelSeries: Arctis Nova Pro Wireless product page (ChatMix via GG/Sonar)", "url": "https://steelseries.com/gaming-headsets/arctis-nova-pro-wireless", "date": "checked 2026-10-31" },
+            { "title": "SteelSeries: ChatMix not working (Sonar needs to be running)", "url": "https://support.steelseries.com/hc/en-us/articles/34381404253581-ChatMix-Not-Working", "date": "updated 2026-10-28" },
+            { "title": "SteelSeries: Arctis Nova Pro Wireless vs Arctis Pro Wireless (Sonar spatial audio)", "url": "https://support.steelseries.com/hc/en-us/articles/6763010652813-Arctis-Nova-Pro-Wireless-vs-Arctis-Pro-Wireless", "date": "updated 2026-10-01" },
+            { "title": "SteelSeries: manage sidetone on your headset", "url": "https://support.steelseries.com/hc/en-us/articles/34059556937229-How-to-manage-Sidetone-on-your-headset", "date": "updated 2026-10-19" },
+            { "title": "SteelSeries blog: Sonar EQ profiles on the base station", "url": "https://steelseries.com/blog/how-to-use-sonar-eq-profiles-on-console-steelseries-1005", "date": "2023-09-13" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corsair", "name": "Corsair", "vendorIds": [ "1B1C" ], "suite": "icue",
+      "supportUrl": "https://www.corsair.com/us/en/explorer/gamer/ambient-lighting/how-to-set-up-hardware-lighting-in-icue/",
+      "fallback": {
+        "onboardMemory": "unknown", "evidence": "low",
+        "notes": "Many Corsair keyboards and mice can save a profile to onboard memory (Device Memory Mode in iCUE). Check whether this one can.",
+        "sources": [
+          { "title": "Corsair: set up hardware lighting (Device Memory Mode) in iCUE", "url": "https://www.corsair.com/us/en/explorer/gamer/ambient-lighting/how-to-set-up-hardware-lighting-in-icue/", "date": "undated, checked 2026-10-31" }
+        ]
+      }
+    },
+    {
+      "id": "asus", "name": "ASUS", "vendorIds": [ "0B05" ], "suite": "armoury",
+      "supportUrl": "https://www.asus.com/us/support/faq/1055115/",
+      "fallback": {
+        "onboardMemory": "unknown", "evidence": "low",
+        "notes": "Check whether this device keeps its settings when Armoury Crate isn't running."
+      },
+      "families": [
+        {
+          "id": "asus-aura-motherboard", "displayName": "ASUS AURA motherboard lighting", "match": "^AURA LED Controller$", "pids": [ "19AF" ], "kind": "lighting",
+          "onboardMemory": "unknown", "evidence": "low",
+          "notes": "ASUS doesn't say whether the board keeps an effect without Armoury Crate, and users report effects changing after uninstalling it. To check: set a static effect, stop Armoury Crate starting with Windows, restart. The BIOS can switch the lighting off in sleep and shutdown (Advanced › Onboard Devices Configuration).",
+          "sources": [
+            { "title": "ASUS: turn off AURA lighting when the PC is shut down (BIOS)", "url": "https://www.asus.com/support/faq/1050213/", "date": "2023-05-19" },
+            { "title": "ASUS: Armoury Crate 6.0 introduction (Aura Sync, Aura Creator)", "url": "https://www.asus.com/us/support/faq/1055115/", "date": "2026-03-04" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "razer", "name": "Razer", "vendorIds": [ "1532" ], "suite": "razer",
+      "supportUrl": "https://mysupport.razer.com/app/answers/detail/a_id/13863/",
+      "fallback": {
+        "onboardMemory": "unknown", "evidence": "low",
+        "notes": "Some Razer mice and keyboards have onboard memory profiles. Check your device's manual or Synapse."
+      }
+    },
+    {
+      "id": "hyperx", "name": "HyperX", "vendorIds": [ "0951", "03F0" ], "requireName": "HyperX", "suite": "hyperx",
+      "supportUrl": "https://supportcenter.hyperx.com/",
+      "fallback": {
+        "onboardMemory": "unknown", "evidence": "low",
+        "notes": "Many HyperX devices have onboard profiles that NGENUITY saves to. Check whether yours does.",
+        "sources": [
+          { "title": "HyperX: switch profiles on the Alloy Rise (close NGENUITY to use onboard profiles)", "url": "https://supportcenter.hyperx.com/articles/alloy-rise/how-to-switch-profiles-on-the-hyperx-alloy-rise/68d6a88a7579af534d69a38d", "date": "checked 2026-10-31" }
+        ]
+      }
+    },
+    {
+      "id": "wooting", "name": "Wooting", "vendorIds": [ "31E3", "03EB" ], "requireName": "Wooting", "suite": "wooting",
+      "supportUrl": "https://help.wooting.io/",
+      "fallback": {
+        "onboardMemory": "unknown", "evidence": "low",
+        "notes": "Check in Wootility whether your profiles are saved to the keyboard."
+      },
+      "families": [
+        {
+          "id": "wooting-keyboard", "displayName": "", "match": "\\bWooting\\b", "kind": "keyboard",
+          "onboardMemory": "yes", "evidence": "medium",
+          "notes": "Wooting keyboards keep their profiles on the keyboard after Save to keyboard in Wootility, and Wootility doesn't need to keep running.",
+          "sources": [
+            { "title": "Wooting 80HE quickstart (profiles on the keyboard, no Wootility running)", "url": "https://wooting.io/quickstart/keyboard/wooting-80he/prebuilt", "date": "checked 2026-10-31" },
+            { "title": "Wooting: change the default profile at startup", "url": "https://help.wooting.io/article/104-how-to-change-default-profile-at-startup", "date": "2025-01-05" }
+          ]
+        }
+      ],
+      "vendorIdSources": [
+        { "title": "usb-ids.gowdy.us: 31e3 Wooting (user-submitted)", "url": "https://usb-ids.gowdy.us/read/UD/31e3", "date": "2021-10-23" }
+      ]
+    },
+    {
+      "id": "keychron", "name": "Keychron", "vendorIds": [ "3434" ], "suite": "",
+      "supportUrl": "https://www.keychron.com/blogs/news/keychron-launcher-guide",
+      "fallback": {
+        "onboardMemory": "unknown", "evidence": "low",
+        "notes": "Keychron keyboards are set up in the Keychron Launcher website or VIA, not a background app. On QMK models the settings live on the keyboard; check which firmware yours has."
+      },
+      "vendorIdSources": [
+        { "title": "usb-ids.gowdy.us: 3434 Keychron (user-submitted)", "url": "https://usb-ids.gowdy.us/read/UD/3434", "date": "2024-01-07" }
+      ]
+    },
+    {
+      "id": "roccat", "name": "ROCCAT", "vendorIds": [ "1E7D" ], "suite": "",
+      "fallback": {
+        "onboardMemory": "unknown", "evidence": "low",
+        "notes": "RigScope doesn't track ROCCAT's Swarm software. Check in Swarm whether this device saves its settings to onboard memory."
+      }
+    },
+    {
+      "id": "msi", "name": "MSI", "vendorIds": [ "1462" ], "suite": "msicenter",
+      "fallback": {
+        "onboardMemory": "unknown", "evidence": "low",
+        "notes": "Check whether this device keeps its lighting and settings when MSI Center isn't running."
+      }
+    },
+    {
+      "id": "nzxt", "name": "NZXT", "vendorIds": [ "1E71" ], "suite": "nzxt",
+      "fallback": {
+        "onboardMemory": "unknown", "evidence": "low",
+        "notes": "Check how this device behaves without NZXT CAM running, especially cooler pump and fan speeds."
+      }
+    }
+  ]
+}

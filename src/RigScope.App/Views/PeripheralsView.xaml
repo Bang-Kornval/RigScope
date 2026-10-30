@@ -1,0 +1,129 @@
+<UserControl x:Class="RigScope.App.Views.PeripheralsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
+        <StackPanel MaxWidth="1000" HorizontalAlignment="Left">
+            <TextBlock Text="Peripherals" Style="{StaticResource PageTitle}" />
+            <TextBlock Style="{StaticResource PageSubtitle}"
+                       Text="Which suite each mouse, keyboard, headset and lighting controller belongs to, what's stored on the device, and what needs the suite running. Most devices keep DPI, polling rate, actuation and lighting on the device, so the suite only has to run to change them." />
+
+            <!-- Summary -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16" Visibility="{Binding Headline, Converter={StaticResource TextVisible}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Headline}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Opacity="0.8" Margin="0,4,0,0"
+                               Visibility="{Binding Detail, Converter={StaticResource TextVisible}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Empty state -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16" Visibility="{Binding EmptyText, Converter={StaticResource TextVisible}}">
+                <TextBlock Text="{Binding EmptyText}" TextWrapping="Wrap" Opacity="0.8" />
+            </Border>
+
+            <!-- One card per suite, with its devices -->
+            <ItemsControl ItemsSource="{Binding Groups}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <WrapPanel>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource SectionTitle}" Margin="0,0,12,6" VerticalAlignment="Center" />
+                                    <Border Style="{StaticResource Pill}" Background="{Binding VerdictStatus, Converter={StaticResource StatusBrush}}" Margin="0,2,8,6"
+                                            Visibility="{Binding HasVerdict, Converter={StaticResource Visible}}">
+                                        <TextBlock Text="{Binding Verdict}" Style="{StaticResource PillText}" />
+                                    </Border>
+                                    <Border Style="{StaticResource Pill}" Background="{DynamicResource SubtleFillColorSecondaryBrush}" Margin="0,2,8,6"
+                                            Visibility="{Binding State, Converter={StaticResource TextVisible}}">
+                                        <TextBlock Text="{Binding State}" FontSize="11" />
+                                    </Border>
+                                </WrapPanel>
+
+                                <ItemsControl ItemsSource="{Binding Reasons}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding StringFormat={}{0}.}" TextWrapping="Wrap" Margin="0,1" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="{Binding OnlyIfYouUse}" TextWrapping="Wrap" Opacity="0.8" Margin="0,4,0,0"
+                                           Visibility="{Binding OnlyIfYouUse, Converter={StaticResource TextVisible}}" />
+                                <TextBlock Text="{Binding Notes}" TextWrapping="Wrap" Opacity="0.7" FontSize="12.5" Margin="0,4,0,0"
+                                           Visibility="{Binding Notes, Converter={StaticResource TextVisible}}" />
+
+                                <ItemsControl ItemsSource="{Binding Devices}" Focusable="False" Margin="0,10,0,0"
+                                              Visibility="{Binding HasDevices, Converter={StaticResource Visible}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Width="300" Margin="0,0,12,12" Padding="14" CornerRadius="6" BorderThickness="1"
+                                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Kind}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                                    <Border Style="{StaticResource Pill}" Background="{Binding OnboardStatus, Converter={StaticResource StatusBrush}}" Margin="0,0,0,6">
+                                                        <TextBlock Text="{Binding Onboard}" Style="{StaticResource PillText}" />
+                                                    </Border>
+                                                    <TextBlock Text="{Binding NeedsSuite}" TextWrapping="Wrap" FontSize="12.5" />
+                                                    <TextBlock Text="{Binding Notes}" TextWrapping="Wrap" FontSize="12" Opacity="0.75" Margin="0,6,0,0"
+                                                               Visibility="{Binding Notes, Converter={StaticResource TextVisible}}" />
+                                                    <TextBlock Text="{Binding Extra}" TextWrapping="Wrap" FontSize="12" Opacity="0.75" Margin="0,6,0,0"
+                                                               Visibility="{Binding Extra, Converter={StaticResource TextVisible}}" />
+                                                    <Expander Header="Sources" FontSize="12" Margin="0,6,0,0" Padding="0,4,0,0"
+                                                              Visibility="{Binding HasSources, Converter={StaticResource Visible}}">
+                                                    <ItemsControl ItemsSource="{Binding Sources}" Focusable="False">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock FontSize="12" TextWrapping="Wrap" Margin="0,1">
+                                                                    <Hyperlink Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Url}"
+                                                                               ToolTip="{Binding Url}">
+                                                                        <Run Text="{Binding Title, Mode=OneWay}" />
+                                                                    </Hyperlink>
+                                                                    <Run Text="{Binding Date, Mode=OneWay}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                </TextBlock>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    </Expander>
+                                                    <TextBlock FontSize="12" Margin="0,6,0,0" Visibility="{Binding SupportUrl, Converter={StaticResource TextVisible}}">
+                                                        <Hyperlink Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding SupportUrl}"
+                                                                   ToolTip="{Binding SupportUrl}">
+                                                            <Run Text="Vendor support page" />
+                                                        </Hyperlink>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="No connected device uses it." Opacity="0.7" Margin="0,8,0,0"
+                                           Visibility="{Binding HasDevices, Converter={StaticResource Collapsed}}" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- How to -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="How to stop a suite starting with Windows" Style="{StaticResource SectionTitle}" />
+                    <TextBlock TextWrapping="Wrap" LineHeight="22">
+                        <Run FontWeight="SemiBold">1. Save your profile to the device.</Run>
+                        <Run Text="In the suite, look for Onboard memory, Save to device or Hardware profile." />
+                        <LineBreak /><Run FontWeight="SemiBold">2. Turn off autostart.</Run>
+                        <Run Text="Task Manager (Ctrl+Shift+Esc) › Startup apps › right-click the suite › Disable." />
+                        <LineBreak /><Run FontWeight="SemiBold">3. Restart and check.</Run>
+                        <Run Text="DPI, polling rate, key actuation and lighting should be as you left them. If something reset, that device needs the suite." />
+                        <LineBreak /><Run FontWeight="SemiBold">To undo:</Run>
+                        <Run Text="set it back to Enabled in Startup apps, or just open the suite." />
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" FontSize="12" Opacity="0.7" Margin="0,8,0,0"
+                               Text="RigScope only reads Windows' device list. It doesn't talk to your devices, and it doesn't change startup apps for you." />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
