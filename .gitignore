@@ -481,4 +481,7 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 publish/
-.claude/
+
+# Claude Code: per-session worktrees and personal settings stay local
+.claude/worktrees/
+.claude/settings.local.json
