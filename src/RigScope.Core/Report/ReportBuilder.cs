@@ -1,0 +1,92 @@
+using System.Text;
+using System.Text.RegularExpressions;
+using RigScope.Core.Games;
+using RigScope.Core.Rules;
+using RigScope.Core.Snapshot;
+using RigScope.Core.Storage;
+
+namespace RigScope.Core.Report;
+
+public sealed record ReportOptions(bool Redact = true, bool IncludeGood = true, bool IncludeMyths = false, bool IncludeStorage = true);
+
+/// <summary>
+/// Builds a Markdown report to paste into Discord, Reddit or a message. With redaction on (the default) it removes
+/// the Windows user name, PC name, Steam account ids, serial-like hardware ids and full paths.
+/// </summary>
+public static partial class ReportBuilder
+{
+    public static string Build(SystemSnapshot s, IReadOnlyList<Finding> findings, string? gameId, IReadOnlyList<CleanupNote>? cleanup = null, ReportOptions? options = null)
+    {
+        options ??= new ReportOptions();
+        var game = gameId is null ? null : GameCatalogue.ById(gameId);
+        var md = new StringBuilder();
+
+        md.AppendLine($"## RigScope report{(game is null ? "" : $" — {game.Name}")}");
+        md.AppendLine($"*{s.CapturedAt:d MMM yyyy} · RigScope {s.AppVersion} · read-only check*");
+        md.AppendLine();
+        md.AppendLine("**PC**");
+        md.AppendLine($"- CPU: {s.Cpu.Name} ({s.Cpu.Cores}C/{s.Cpu.Threads}T)");
+        foreach (var g in s.Gpus) md.AppendLine($"- GPU: {g.Name}{(g.VendorDriverVersion.Length > 0 ? $", driver {g.VendorDriverVersion}" : "")}");
+        if (s.Memory.TotalBytes > 0) md.AppendLine($"- RAM: {s.Memory.TotalGb} GB {s.Memory.Generation} at {s.Memory.ConfiguredMts} MT/s ({s.Memory.Modules.Count} sticks)");
+        foreach (var d in s.Displays) md.AppendLine($"- Display: {d.MonitorName} {d.Width}x{d.Height} @ {d.RefreshHz} Hz{(d.IsPrimary ? " (main)" : "")}");
+        md.AppendLine($"- Windows: {s.Os.ProductName} {s.Os.DisplayVersion} (build {s.Os.Build})");
+        if (s.Firmware.BoardProduct.Length > 0) md.AppendLine($"- Board: {s.Firmware.BoardProduct}, BIOS {s.Firmware.BiosVersion}");
+        md.AppendLine();
+
+        Section(md, "Worth doing", findings.Where(f => f.Status is FindingStatus.Warn or FindingStatus.Suggest), detailed: true);
+        Section(md, "Check yourself", findings.Where(f => f.Status is FindingStatus.Info or FindingStatus.Unknown && f.Rule.Kind != AdviceKind.Preference), detailed: false);
+        if (options.IncludeGood) Section(md, "Already good", findings.Where(f => f.Status == FindingStatus.Good), detailed: false);
+        if (options.IncludeMyths) Section(md, "Skip these (myths)", findings.Where(f => f.Status == FindingStatus.Myth), detailed: false);
+
+        if (options.IncludeStorage && cleanup is { Count: > 0 })
+        {
+            md.AppendLine("**Storage: where to look first**");
+            foreach (var n in cleanup.Where(n => n.Tag != CleanupTag.Keep).Take(8))
+                md.AppendLine($"- {SnapshotQuery.FormatBytes(n.Bytes)} · {n.Title} ({(n.Tag == CleanupTag.Safe ? "safe to clear" : "review first")})");
+            md.AppendLine();
+        }
+
+        md.AppendLine("*Made with RigScope. It only reads settings; it never changes anything.*");
+        var text = md.ToString();
+        return options.Redact ? Redact(text, s) : text;
+    }
+
+    private static void Section(StringBuilder md, string heading, IEnumerable<Finding> items, bool detailed)
+    {
+        var list = items.ToList();
+        if (list.Count == 0) return;
+        md.AppendLine($"**{heading}**");
+        foreach (var f in list)
+        {
+            md.AppendLine($"- {(f.Status == FindingStatus.Warn ? "⚠ " : "")}{f.Title}: {f.Summary}");
+            if (detailed && f.Recommendation.Length > 0) md.AppendLine($"  - → {f.Recommendation}");
+        }
+        md.AppendLine();
+    }
+
+    /// <summary>Removes personal details. Safe to call more than once.</summary>
+    public static string Redact(string text, SystemSnapshot? s = null)
+    {
+        var user = Environment.UserName;
+        var machine = Environment.MachineName;
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        if (profile.Length > 3) text = text.Replace(profile, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+        text = UsersPath().Replace(text, @"C:\Users\<you>");
+        if (user.Length >= 3) text = Regex.Replace(text, $@"\b{Regex.Escape(user)}\b", "<you>", RegexOptions.IgnoreCase);
+        if (machine.Length >= 3) text = Regex.Replace(text, $@"\b{Regex.Escape(machine)}\b", "<pc>", RegexOptions.IgnoreCase);
+        foreach (var a in s?.Cs2?.Accounts ?? []) if (a.SteamId3.Length > 0) text = text.Replace(a.SteamId3, "<steam-id>");
+        text = SubsysId().Replace(text, "SUBSYS_<id>");
+        text = Email().Replace(text, "<email>");
+        return text;
+    }
+
+    [GeneratedRegex(@"[A-Za-z]:\\Users\\(?!<you>|Public\b|Default\b)[^\\\s""']+", RegexOptions.IgnoreCase)]
+    private static partial Regex UsersPath();
+
+    [GeneratedRegex(@"SUBSYS_[0-9A-F]{8}", RegexOptions.IgnoreCase)]
+    private static partial Regex SubsysId();
+
+    [GeneratedRegex(@"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")]
+    private static partial Regex Email();
+}
