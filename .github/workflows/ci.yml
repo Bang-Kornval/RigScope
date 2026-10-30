@@ -13,6 +13,6 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet restore
-      - run: dotnet build --no-restore -c Release
+      # Restore as part of the Release build so the self-contained runtime packs are fetched.
+      - run: dotnet build -c Release
       - run: dotnet test --no-build -c Release --verbosity normal
