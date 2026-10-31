@@ -13,6 +13,7 @@
         <DataTemplate DataType="{x:Type vm:StorageViewModel}"><views:StorageView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:MeasureViewModel}"><views:MeasureView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:ReportViewModel}"><views:ReportView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView /></DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -36,9 +37,23 @@
                     <TextBlock Text="Read-only" FontWeight="SemiBold" Foreground="{StaticResource StatusGoodBrush}" />
                     <TextBlock TextWrapping="Wrap" FontSize="12" Opacity="0.8" Margin="0,4,0,8"
                                Text="RigScope only reads settings. It never changes, deletes or tweaks anything on your PC." />
-                    <TextBlock Text="{Binding StatusText}" FontSize="11" Opacity="0.7" TextWrapping="Wrap" />
-                    <Button Content="Check again" Command="{Binding LoadCommand}" Margin="0,8,0,0" HorizontalAlignment="Left"
-                            IsEnabled="{Binding IsLoading, Converter={StaticResource Not}, Mode=OneWay}" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Command="{Binding OpenSettingsCommand}" Padding="8,6" Margin="8,0,0,0" VerticalAlignment="Bottom"
+                                ToolTip="Settings: check again, updates and what's new" AutomationProperties.Name="Settings">
+                            <Grid>
+                                <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" />
+                                <!-- Dot when the startup check found a newer version. -->
+                                <Ellipse Width="8" Height="8" Fill="{StaticResource AccentScopeBrush}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-3,-5,0"
+                                         Visibility="{Binding Settings.Available, Converter={StaticResource NotNullVisible}}" />
+                            </Grid>
+                        </Button>
+                        <StackPanel VerticalAlignment="Bottom">
+                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource StatusGoodBrush}" Margin="0,0,0,2"
+                                       Text="{Binding Settings.Available.Version, StringFormat='Update available: {0}'}"
+                                       Visibility="{Binding Settings.Available, Converter={StaticResource NotNullVisible}}" />
+                            <TextBlock Text="{Binding StatusText}" FontSize="11" Opacity="0.7" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </DockPanel>
                 </StackPanel>
             </Border>
 
@@ -56,7 +71,7 @@
         </DockPanel>
 
         <!-- Page -->
-        <ContentControl Grid.Column="1" Content="{Binding SelectedPage.Page}" Margin="8,16,20,16" Focusable="False" />
+        <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" Margin="8,16,20,16" Focusable="False" />
 
         <!-- First load -->
         <Grid Grid.ColumnSpan="2" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"

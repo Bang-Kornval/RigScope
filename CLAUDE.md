@@ -3,7 +3,7 @@
 Read-only Windows app that checks a gaming PC for competitive FPS (CS2 deepest), explains which tweaks are myths, maps drive storage and shows which peripheral suites can stop running. C# / .NET 10, WPF (Fluent theme), xUnit. Shared publicly via GitHub releases.
 
 ## Non-negotiables
-- **Read-only.** Probes only read files, registry, WMI, PnP and vendor CLIs (`nvidia-smi`). Never write system settings, never open/write device handles, no admin, no background service, nothing anti-cheat could flag. The only write is scan history in `%LOCALAPPDATA%\RigScope\scans` (and files the user saves via dialogs).
+- **Read-only.** Probes only read files, registry, WMI, PnP and vendor CLIs (`nvidia-smi`). Never write system settings, never open/write device handles, no admin, no background service, nothing anti-cheat could flag. The only writes are scan history in `%LOCALAPPDATA%\RigScope\scans`, the user's Settings choices in `%LOCALAPPDATA%\RigScope\settings.json` (and files the user saves via dialogs).
 - **Dynamic.** Never hardcode anything to one PC (drives, users, vendors, paths, device ids). Other people run this.
 - **Honest advice.** Every rule states impact and evidence level; cite sources that actually load; "unknown/check" beats a guess. No registry hacks or tweak scripts in steps.
 
@@ -30,6 +30,8 @@ CI (`.github/workflows/ci.yml`) runs build + test on windows-latest. Pushing a `
 - New advice: add a rule to `advice-pack.json`, add a scenario assertion in `RuleTests.cs`, run tests. Only the last outcome of a rule may lack `when`.
 - New probe data: extend `SystemSnapshot`, fill it in a probe, give the fake PCs values (including "missing").
 - UI changes: launch the app and look at it; the Fluent theme follows Windows light/dark.
+- User-visible change: add a bullet to `CHANGELOG.md` (embedded; shown in Settings › What's new). A `v*` tag needs a matching `## [x.y.z]` section and that version in `Directory.Build.props`, or the release fails.
+- Network: the only network call is the update check in `Core/Updates/UpdateChecker.cs` (at startup unless turned off in Settings, or on the button). Keep it that way.
 - Match surrounding code style and comment density. Copy is plain and direct, written for gamers, no hype.
 
 ## Git

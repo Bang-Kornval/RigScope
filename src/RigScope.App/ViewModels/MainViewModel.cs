@@ -29,6 +29,8 @@ public sealed partial class MainViewModel : ObservableObject
     public ObservableCollection<NavItem> Pages { get; } = [];
 
     [ObservableProperty] private NavItem? _selectedPage;
+    /// <summary>The page on screen: the selected nav item's page, or Settings (which isn't in the nav list).</summary>
+    [ObservableProperty] private ObservableObject? _currentPage;
     [ObservableProperty] private bool _isLoading = true;
     [ObservableProperty] private string _loadingText = "Starting…";
     [ObservableProperty] private string _statusText = "";
@@ -37,6 +39,7 @@ public sealed partial class MainViewModel : ObservableObject
     public CheckViewModel Check { get; }
     public StorageViewModel Storage { get; }
     public ReportViewModel Report { get; }
+    public SettingsViewModel Settings { get; }
 
     public MainViewModel()
     {
@@ -44,6 +47,7 @@ public sealed partial class MainViewModel : ObservableObject
         Check = new CheckViewModel(State);
         Storage = new StorageViewModel(State);
         Report = new ReportViewModel(State, Check, Storage);
+        Settings = new SettingsViewModel(this);
         // Segoe Fluent Icons glyphs.
         Pages.Add(new NavItem("Overview", "", Overview));
         Pages.Add(new NavItem("Competitive check", "", Check));
@@ -55,6 +59,18 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     public void Navigate(ObservableObject page) => SelectedPage = Pages.FirstOrDefault(p => p.Page == page) ?? SelectedPage;
+
+    partial void OnSelectedPageChanged(NavItem? value)
+    {
+        if (value is not null) CurrentPage = value.Page;
+    }
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        SelectedPage = null;
+        CurrentPage = Settings;
+    }
 
     [RelayCommand]
     public async Task LoadAsync()

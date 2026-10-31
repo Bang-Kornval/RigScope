@@ -30,8 +30,9 @@ Yes. RigScope doesn't inject into games, read game memory, load drivers or run i
 
 ## Privacy
 
-- No account, no telemetry, no network calls.
-- The only thing RigScope writes is a small summary of each storage scan in `%LOCALAPPDATA%\RigScope\scans`, so the next scan can show what changed. Delete that folder any time.
+- No account, no telemetry.
+- The only time RigScope goes online is to check for updates: once when it starts, and when you press **Settings › Check for updates**. It asks GitHub for the latest version and release notes, and sends nothing about your PC. Turn off **Check for updates when RigScope starts** in Settings and it never goes online on its own. If you download an update, you pick where it's saved, RigScope checks it against the published SHA-256, and you start it yourself. Nothing is installed or replaced automatically.
+- RigScope writes two things on its own: `%LOCALAPPDATA%\RigScope\settings.json` (your Settings choices) and a small summary of each storage scan in `%LOCALAPPDATA%\RigScope\scans`, so the next scan can show what changed. Delete that folder any time.
 - **Share report** removes your user name, PC name, Steam account ids, hardware serial ids and email addresses by default.
 
 ## Download
