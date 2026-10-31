@@ -152,7 +152,14 @@ public class RuleScenarioTests
         var f = Engine.Evaluate(FakePcs.IntelNvidiaDesktop(), "cs2");
         Assert.Equal(FindingStatus.Suggest, Status(f, "display.refresh-secondary"));
         Assert.Equal(FindingStatus.Good, Status(f, "display.refresh-primary"));
-        Assert.Equal(FindingStatus.Suggest, Status(f, "apps.peripheral-suites"));
+        // G HUB isn't needed (the mouse keeps its settings onboard); GG is, because Sonar is set up.
+        Assert.Equal(FindingStatus.Suggest, Status(f, "peripherals.suites-not-needed"));
+        Assert.Contains("Logitech G HUB", Find(f, "peripherals.suites-not-needed")!.Summary);
+        Assert.DoesNotContain("SteelSeries", Find(f, "peripherals.suites-not-needed")!.Summary);
+        Assert.Equal(FindingStatus.Good, Status(f, "peripherals.suites-needed"));
+        Assert.Contains("SteelSeries GG", Find(f, "peripherals.suites-needed")!.Summary);
+        Assert.Contains("Sonar", Find(f, "peripherals.suites-needed")!.Current);
+        Assert.Null(Find(f, "apps.peripheral-suites")); // the device-aware rules replace the general one
         Assert.Equal(FindingStatus.Suggest, Status(f, "apps.virtual-machines"));
         Assert.Equal(FindingStatus.Suggest, Status(f, "firmware.bios-age"));
         Assert.Equal(FindingStatus.Good, Status(f, "firmware.xmp"));
@@ -221,6 +228,49 @@ public class RuleScenarioTests
         // The laptop rules beat desktop-only ones.
         Assert.Null(Find(f, "storage.hiberfil"));
         Assert.Null(Find(f, "cs2.reflex"));
+    }
+
+    [Fact]
+    public void Unknown_corsair_keyboard_makes_icue_a_check_not_a_verdict()
+    {
+        var f = Engine.Evaluate(FakePcs.AmdX3dRadeon(), null);
+        Assert.Equal(FindingStatus.Info, Status(f, "peripherals.suites-not-needed"));
+        Assert.Contains("Corsair iCUE", Find(f, "peripherals.suites-not-needed")!.Summary);
+        Assert.Null(Find(f, "peripherals.suites-needed"));
+        Assert.Null(Find(f, "apps.peripheral-suites"));
+    }
+
+    [Fact]
+    public void No_suites_no_peripheral_findings()
+    {
+        foreach (var pc in new[] { FakePcs.IntelHybridLaptopOnBattery(), FakePcs.WifiNoGames(), new Core.Snapshot.SystemSnapshot() })
+        {
+            var f = Engine.Evaluate(pc, null);
+            Assert.Null(Find(f, "peripherals.suites-not-needed"));
+            Assert.Null(Find(f, "peripherals.suites-needed"));
+            Assert.Null(Find(f, "apps.peripheral-suites"));
+        }
+    }
+
+    [Fact]
+    public void Without_a_device_list_the_general_suite_rule_still_applies()
+    {
+        var pc = FakePcs.IntelNvidiaDesktop();
+        pc.Peripherals.Clear();
+        pc.Suites.Clear(); // what the suites probe leaves when the device list couldn't be read
+        var f = Engine.Evaluate(pc, null);
+        Assert.Equal(FindingStatus.Suggest, Status(f, "apps.peripheral-suites"));
+        Assert.Null(Find(f, "peripherals.suites-not-needed"));
+    }
+
+    [Fact]
+    public void Every_suite_needed_is_good_not_suggest()
+    {
+        var pc = FakePcs.IntelNvidiaDesktop();
+        pc.Suites.RemoveAll(s => s.Id == "ghub");
+        var f = Engine.Evaluate(pc, null);
+        Assert.Equal(FindingStatus.Good, Status(f, "peripherals.suites-not-needed"));
+        Assert.Equal(FindingStatus.Good, Status(f, "peripherals.suites-needed"));
     }
 
     [Fact]

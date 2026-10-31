@@ -15,6 +15,11 @@ public partial class CheckView : UserControl
     public CheckView() => InitializeComponent();
 }
 
+public partial class PeripheralsView : UserControl
+{
+    public PeripheralsView() => InitializeComponent();
+}
+
 public partial class StorageView : UserControl
 {
     public StorageView() => InitializeComponent();

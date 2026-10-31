@@ -15,6 +15,7 @@ A free Windows app that checks a gaming PC **for competitive FPS games**. It tel
 | Graphics driver | Driver age, Low Latency Mode vs. Reflex, Resizable BAR, PCIe slot width |
 | Windows | Game Mode, background recording, Memory Integrity, HAGS, power plan |
 | Background apps | Several RGB/peripheral suites at once, Docker/WSL VMs, double recorders, overlays, cloud sync |
+| Peripherals | Which suite each mouse, keyboard, headset and lighting controller belongs to, what's stored on the device, what needs the suite running (e.g. SteelSeries Sonar), and which suites can stop starting with Windows |
 | Network | Wi-Fi vs. wired, Energy Efficient Ethernet, early Intel I225-V revisions, bufferbloat |
 | Hardware and BIOS | XMP/EXPO off, single-channel RAM, old BIOS, AMD dual-CCD X3D, Intel hybrid CPUs, laptops on battery |
 | Storage | Game on a hard drive, low free space, and a drive map with cleanup notes |
@@ -25,7 +26,7 @@ It works out what's in each PC: Intel/AMD CPUs, NVIDIA/AMD/Intel GPUs, laptops, 
 
 ## Is it safe with anti-cheat?
 
-Yes. RigScope doesn't inject into games, read game memory, load drivers or run in the background. It reads files (such as CS2's `cs2_video.txt`), the registry, WMI and `nvidia-smi` — the same things Windows Settings and Task Manager show. That's why it works next to VAC, FACEIT and Riot Vanguard.
+Yes. RigScope doesn't inject into games, read game memory, load drivers or run in the background. It reads files (such as CS2's `cs2_video.txt`), the registry, WMI and `nvidia-smi` — the same things Windows Settings and Task Manager show. For peripherals it only reads the device names Device Manager shows; it never opens a device or sends it anything. That's why it works next to VAC, FACEIT and Riot Vanguard.
 
 ## Privacy
 
@@ -67,6 +68,7 @@ Probes (read-only)  →  SystemSnapshot (JSON)  →  rules engine  →  findings
 ```
 
 - `src/RigScope.Core/Probes` read facts about the PC. A failing probe is reported, never fatal.
+- `advice/peripherals.json` maps USB vendor ids to suites and lists device families: what each keeps in onboard memory and what needs its suite running, with sources. Unknown models get "check", not a guess.
 - `advice/advice-pack.json` holds every recommendation as data: a condition on the snapshot, outcomes, text, impact, evidence and sources. Fixing advice or adding a rule doesn't need C#. The path and condition syntax is documented in `src/RigScope.Core/Rules/SnapshotQuery.cs`.
 - `tests/` run every rule against several made-up PCs (Intel+NVIDIA desktop, AMD X3D+Radeon, hybrid laptop on battery, Wi-Fi without games, empty), so rules are checked across hardware, not just one machine.
 

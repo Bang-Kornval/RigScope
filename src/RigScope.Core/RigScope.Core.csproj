@@ -14,6 +14,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="RigScope.Core.Tests" />
     <EmbeddedResource Include="..\..\advice\advice-pack.json" LogicalName="RigScope.Core.advice-pack.json" />
+    <EmbeddedResource Include="..\..\advice\peripherals.json" LogicalName="RigScope.Core.peripherals.json" />
     <EmbeddedResource Include="..\..\CHANGELOG.md" LogicalName="RigScope.Core.CHANGELOG.md" />
   </ItemGroup>
 

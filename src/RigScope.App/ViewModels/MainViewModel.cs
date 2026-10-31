@@ -51,6 +51,7 @@ public sealed partial class MainViewModel : ObservableObject
         // Segoe Fluent Icons glyphs.
         Pages.Add(new NavItem("Overview", "", Overview));
         Pages.Add(new NavItem("Competitive check", "", Check));
+        Pages.Add(new NavItem("Peripherals", "\uE772", new PeripheralsViewModel(State))); // Devices glyph
         Pages.Add(new NavItem("Storage", "", Storage));
         Pages.Add(new NavItem("Measure", "", new MeasureViewModel(State)));
         Pages.Add(new NavItem("Share report", "", Report));

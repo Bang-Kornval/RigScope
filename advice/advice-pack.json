@@ -405,10 +405,14 @@
 
     // ───────────────────────────── Background apps ─────────────────────────────
     {
+      // General advice for when RigScope can't tie the suites to devices (device list unreadable, or only suites it has no
+      // device data for, such as SignalRGB). Otherwise peripherals.suites-not-needed and peripherals.suites-needed take over.
       "id": "apps.peripheral-suites",
       "title": "Peripheral and RGB software",
       "category": "apps",
-      "appliesWhen": { "path": "apps[category=rgb]", "countGte": 1 },
+      "appliesWhen": { "all": [
+        { "path": "apps[category=rgb]", "countGte": 1 },
+        { "path": "suites[active=true]", "countEq": 0 } ] },
       "current": "{apps[category=rgb].name|join}",
       "outcomes": [
         { "when": { "path": "apps[category=rgb,running=true]", "countGte": 2 }, "status": "suggest",
@@ -428,6 +432,64 @@
       ],
       "undo": "Set them back to Enabled in Startup apps.",
       "risk": "Some lighting effects and audio features (e.g. SteelSeries Sonar EQ) need the app running."
+    },
+    {
+      // Uses the suites list: one entry per suite, with needed = true/false/unknown worked out from the connected devices
+      // and advice/peripherals.json. See the Peripherals page for the per-device view.
+      "id": "peripherals.suites-not-needed",
+      "title": "Peripheral suites you may not need running",
+      "category": "apps",
+      "appliesWhen": { "path": "suites[active=true]", "countGte": 1 },
+      "current": "{suites[active=true].name|join}. Not needed all the time: {suites[active=true,needed=false].name|join|default:none}. Needed: {suites[active=true,needed=true].name|join|default:none}. Can't tell: {suites[active=true,needed=unknown].name|join|default:none}.",
+      "outcomes": [
+        { "when": { "path": "suites[active=true,needed=false]", "countGte": 1 }, "status": "suggest",
+          "summary": "Not needed all the time: {suites[active=true,needed=false].name|join}. Your connected devices keep their settings on the device." },
+        { "when": { "path": "suites[active=true,needed=unknown]", "countGte": 1 }, "status": "info",
+          "summary": "Check whether you need {suites[active=true,needed=unknown].name|join} running. RigScope couldn't tell from your devices." },
+        { "status": "good", "summary": "Each suite that runs is needed by a device or feature you use." }
+      ],
+      "recommendation": "Save your profiles to the devices' onboard memory, then stop the suites you don't need from starting with Windows. Open a suite when you want to change a setting.",
+      "why": "Most gaming mice and keyboards keep DPI, polling rate, key actuation and lighting on the device once a profile is saved there, so the suite only has to run to change them. Some features do need it running: software macros, per-game profile switching, animated lighting across devices, and audio processing such as SteelSeries Sonar. Users report CPU spikes and stutter from suites running in the background, but nobody has measured several together, so treat the performance gain as small and unproven.",
+      "impact": "small",
+      "evidence": "low",
+      "steps": [
+        "Open {suites[active=true,needed=false].name|join|default:the suite} and save your current profile to the device. The option is called Onboard memory, Save to device or Hardware profile depending on the vendor.",
+        "Open Task Manager (Ctrl+Shift+Esc) › Startup apps, right-click the suite › Disable.",
+        "Restart the PC and check that DPI, polling rate, key actuation and lighting are still how you set them.",
+        "The Peripherals page lists, per device, what is stored on it and what needs the suite."
+      ],
+      "undo": "Task Manager › Startup apps › right-click the suite › Enable. Or just open the suite when you need it.",
+      "risk": "Features that need the suite stop until you open it again: software macros, per-game profiles, cross-device lighting effects and suite audio processing.",
+      "sources": [
+        { "title": "Logitech: enable On-Board Memory mode with G HUB", "url": "https://support.logi.com/hc/en-gb/articles/6505257646743-Enable-On-Board-Memory-mode-on-your-gaming-mouse-with-Logitech-G-HUB", "date": "undated, checked 2026-10-31" },
+        { "title": "Logitech: onboard memory mode keeps settings without G HUB (G502 X)", "url": "https://support.logi.com/hc/en-us/articles/8270766751511-Onboard-Memory-Mode-DPI-profiles-on-G502-X", "date": "undated, checked 2026-10-31" },
+        { "title": "Corsair: hardware lighting (Device Memory Mode) in iCUE", "url": "https://www.corsair.com/us/en/explorer/gamer/ambient-lighting/how-to-set-up-hardware-lighting-in-icue/", "date": "undated, checked 2026-10-31" },
+        { "title": "SteelSeries: does Prism illumination save to my device", "url": "https://support.steelseries.com/hc/en-us/articles/15897967681805-Does-Prism-illumination-save-to-my-device", "date": "updated 2026-10-20" },
+        { "title": "Wooting 80HE quickstart (no Wootility running needed)", "url": "https://wooting.io/quickstart/keyboard/wooting-80he/prebuilt", "date": "checked 2026-10-31" }
+      ]
+    },
+    {
+      "id": "peripherals.suites-needed",
+      "title": "Peripheral suites to keep running",
+      "category": "apps",
+      "appliesWhen": { "path": "suites[active=true,needed=true]", "countGte": 1 },
+      "current": "{suites[active=true,needed=true].reason|join}",
+      "outcomes": [
+        { "status": "good", "summary": "Keep {suites[active=true,needed=true].name|join} running. A device or feature you use needs it." }
+      ],
+      "recommendation": "Leave these suites running. If you stop using the feature that needs one, it can go too.",
+      "why": "Sonar is software: Windows plays sound to Sonar's own audio devices, and its EQ, spatial audio and ChatMix on PC work only while it runs. SteelSeries says Sonar has to be running for ChatMix to work. Devices without onboard memory also lose their settings when the suite isn't running.",
+      "impact": "small",
+      "evidence": "medium",
+      "steps": [
+        "Nothing to change. To stop needing the suite, switch the feature off inside it first (for Sonar: turn Sonar off in SteelSeries GG so Windows plays sound on the headset directly), then disable it in Task Manager › Startup apps."
+      ],
+      "undo": "Turn the feature back on inside the suite.",
+      "risk": "Switching off Sonar or a similar feature without changing your sound output can leave Windows playing to a device that no longer passes sound on.",
+      "sources": [
+        { "title": "SteelSeries: ChatMix not working (Sonar needs to be running)", "url": "https://support.steelseries.com/hc/en-us/articles/34381404253581-ChatMix-Not-Working", "date": "updated 2026-10-28" },
+        { "title": "SteelSeries: Arctis Nova Pro Wireless product page (ChatMix via GG/Sonar)", "url": "https://steelseries.com/gaming-headsets/arctis-nova-pro-wireless", "date": "checked 2026-10-31" }
+      ]
     },
     {
       "id": "apps.virtual-machines",

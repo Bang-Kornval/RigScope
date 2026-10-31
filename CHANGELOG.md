@@ -10,6 +10,7 @@ Format: `## [version] - yyyy-mm-dd`, optional `### Group` headings, and `- ` bul
 ### New
 - Competitive check for CS2, VALORANT, Apex Legends, Overwatch 2, Fortnite, Rainbow Six Siege and Marvel Rivals, with impact, evidence level and sources for every finding.
 - Myths section that explains which popular tweaks don't help.
+- Peripherals page that shows which mouse, keyboard and headset suites are running and which can be closed.
 - Storage map with folder sizes, largest files, cleanup notes and what changed since the last scan.
 - Share report you can paste into Discord or Reddit, with personal details removed by default.
 - Measure page with a simple before/after testing method and free tools.
