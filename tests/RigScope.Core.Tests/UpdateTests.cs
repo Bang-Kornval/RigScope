@@ -119,3 +119,34 @@ public class UpdateTests
         Assert.Contains(UpdateChecker.CurrentVersion, versions);
     }
 }
+
+public sealed class SettingsStoreTests : IDisposable
+{
+    private readonly string _dir = Path.Combine(Path.GetTempPath(), "rigscope-settings-" + Guid.NewGuid().ToString("N"));
+    private string FilePath => Path.Combine(_dir, "settings.json");
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_dir)) Directory.Delete(_dir, recursive: true);
+    }
+
+    [Fact]
+    public void Missing_file_gives_defaults_with_startup_check_on() =>
+        Assert.True(new RigScope.Core.Settings.SettingsStore(FilePath).Load().CheckForUpdatesOnStartup);
+
+    [Fact]
+    public void Saved_choice_is_loaded_back()
+    {
+        var store = new RigScope.Core.Settings.SettingsStore(FilePath);
+        Assert.True(store.Save(new() { CheckForUpdatesOnStartup = false }));
+        Assert.False(new RigScope.Core.Settings.SettingsStore(FilePath).Load().CheckForUpdatesOnStartup);
+    }
+
+    [Fact]
+    public void Broken_file_gives_defaults()
+    {
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(FilePath, "{ not json");
+        Assert.True(new RigScope.Core.Settings.SettingsStore(FilePath).Load().CheckForUpdatesOnStartup);
+    }
+}

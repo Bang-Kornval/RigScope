@@ -14,4 +14,4 @@ Format: `## [version] - yyyy-mm-dd`, optional `### Group` headings, and `- ` bul
 - Share report you can paste into Discord or Reddit, with personal details removed by default.
 - Measure page with a simple before/after testing method and free tools.
 - Settings page: check your PC again, check for updates and see what's new.
-- Update check that only contacts GitHub when you press the button. Downloads are saved where you choose and checked against the published SHA-256.
+- Update check at startup (you can turn it off in Settings) and on demand. A dot on the cog shows when a new version is out. Downloads are saved where you choose and checked against the published SHA-256.

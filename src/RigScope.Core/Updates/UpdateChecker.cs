@@ -17,8 +17,8 @@ public sealed record UpdateCheckResult(UpdateState State, ReleaseInfo? Latest, s
 public sealed record DownloadResult(bool Ok, bool Verified, string Message);
 
 /// <summary>
-/// Looks up the latest GitHub release and downloads its exe to a path the user picked. Only runs when the user asks:
-/// RigScope makes no network calls on its own. It never replaces the running exe or installs anything.
+/// Looks up the latest GitHub release and downloads its exe to a path the user picked. Runs at startup (if enabled in
+/// Settings) or when the user presses the button. It never replaces the running exe or installs anything.
 /// </summary>
 public static partial class UpdateChecker
 {

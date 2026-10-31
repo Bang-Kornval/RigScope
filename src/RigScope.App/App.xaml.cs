@@ -14,7 +14,14 @@ public partial class App : Application
         var vm = new MainViewModel();
         var window = new MainWindow { DataContext = vm };
         window.Show();
-        _ = vm.LoadAsync();
+        _ = StartAsync(vm);
+    }
+
+    private static async Task StartAsync(MainViewModel vm)
+    {
+        await vm.LoadAsync();
+        // After the first read so the probes have the PC to themselves. Off in Settings → no network call at all.
+        await vm.Settings.CheckAtStartupAsync();
     }
 
     private static void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)

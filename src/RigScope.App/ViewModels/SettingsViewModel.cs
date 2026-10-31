@@ -3,6 +3,7 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
+using RigScope.Core.Settings;
 using RigScope.Core.Updates;
 
 namespace RigScope.App.ViewModels;
@@ -31,6 +32,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _downloadOk;
     [ObservableProperty] private string? _downloadedPath;
 
+    [ObservableProperty] private bool _checkOnStartup;
+    [ObservableProperty] private string _settingsMessage = "";
+
+    private readonly SettingsStore _store = new();
+    private UserSettings _settings;
+
     public SettingsViewModel(MainViewModel main)
     {
         Main = main;
@@ -38,18 +45,35 @@ public sealed partial class SettingsViewModel : ObservableObject
             .Where(e => !e.IsUnreleased)
             .Select(e => new ChangelogItem(e, UpdateChecker.TryParseVersion(e.Version, out var v) && v == UpdateChecker.CurrentVersion))
             .ToList();
+        _settings = _store.Load();
+        CheckOnStartup = _settings.CheckForUpdatesOnStartup;
+    }
+
+    partial void OnCheckOnStartupChanged(bool value)
+    {
+        if (_settings.CheckForUpdatesOnStartup == value) return;
+        _settings = _settings with { CheckForUpdatesOnStartup = value };
+        SettingsMessage = _store.Save(_settings) ? "" : $"Couldn't save this choice to {_store.Path}. It applies until you close RigScope.";
+    }
+
+    /// <summary>Called once at startup. Quiet: only says something when there's a newer version.</summary>
+    public async Task CheckAtStartupAsync()
+    {
+        if (CheckOnStartup && Available is null && !IsChecking) await RunCheckAsync(quiet: true);
     }
 
     [RelayCommand]
-    private async Task CheckForUpdatesAsync()
+    private Task CheckForUpdatesAsync() => RunCheckAsync(quiet: false);
+
+    private async Task RunCheckAsync(bool quiet)
     {
         IsChecking = true;
-        UpdateMessage = "Asking GitHub for the latest release…";
+        if (!quiet) UpdateMessage = "Asking GitHub for the latest release…";
         Available = null;
         DownloadMessage = "";
         DownloadedPath = null;
         var result = await UpdateChecker.CheckAsync();
-        UpdateMessage = result.Message;
+        if (!quiet || result.State == UpdateState.Available) UpdateMessage = result.Message;
         if (result.State == UpdateState.Available && result.Latest is { } latest)
         {
             // The release notes are the CHANGELOG section for that version, so the same parser reads them.
