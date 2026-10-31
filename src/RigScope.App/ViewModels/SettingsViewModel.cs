@@ -43,17 +43,35 @@ public sealed partial class SettingsViewModel : ObservableObject
         Main = main;
         WhatsNew = Changelog.LoadBuiltIn()
             .Where(e => !e.IsUnreleased)
-            .Select(e => new ChangelogItem(e, UpdateChecker.TryParseVersion(e.Version, out var v) && v == UpdateChecker.CurrentVersion))
+            .Select(e => new ChangelogItem(e, AppVersion.TryParse(e.Version, out var v) && v == UpdateChecker.CurrentVersion))
             .ToList();
         _settings = _store.Load();
         CheckOnStartup = _settings.CheckForUpdatesOnStartup;
+        EarlyVersions = _settings.WantsEarlyVersions(UpdateChecker.CurrentVersion.IsPrerelease);
     }
+
+    /// <summary>Beta testing opt-in: also offer alpha/beta releases.</summary>
+    [ObservableProperty] private bool _earlyVersions;
 
     partial void OnCheckOnStartupChanged(bool value)
     {
         if (_settings.CheckForUpdatesOnStartup == value) return;
-        _settings = _settings with { CheckForUpdatesOnStartup = value };
-        SettingsMessage = _store.Save(_settings) ? "" : $"Couldn't save this choice to {_store.Path}. It applies until you close RigScope.";
+        Save(_settings with { CheckForUpdatesOnStartup = value });
+    }
+
+    partial void OnEarlyVersionsChanged(bool value)
+    {
+        if (_settings.WantsEarlyVersions(UpdateChecker.CurrentVersion.IsPrerelease) == value) return;
+        Save(_settings with { EarlyVersions = value });
+        // What counts as "newer" just changed, so an offer from the last check may no longer apply.
+        Available = null;
+        UpdateMessage = "";
+    }
+
+    private void Save(UserSettings settings)
+    {
+        _settings = settings;
+        SettingsMessage = _store.Save(settings) ? "" : $"Couldn't save this choice to {_store.Path}. It applies until you close RigScope.";
     }
 
     /// <summary>Called once at startup. Quiet: only says something when there's a newer version.</summary>
@@ -72,7 +90,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         Available = null;
         DownloadMessage = "";
         DownloadedPath = null;
-        var result = await UpdateChecker.CheckAsync();
+        var result = await UpdateChecker.CheckAsync(EarlyVersions);
         if (!quiet || result.State == UpdateState.Available) UpdateMessage = result.Message;
         if (result.State == UpdateState.Available && result.Latest is { } latest)
         {

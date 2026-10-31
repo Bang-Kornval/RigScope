@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 namespace RigScope.Core.Updates;
 
 public sealed record ReleaseInfo(
-    Version Version, string Tag, string Notes, string PageUrl, DateTimeOffset? PublishedAt,
+    AppVersion Version, string Tag, bool IsPrerelease, string Notes, string PageUrl, DateTimeOffset? PublishedAt,
     string? ExeUrl, long ExeSize, string? ChecksumUrl);
 
 public enum UpdateState { UpToDate, Available, NoReleases, Failed }
@@ -27,7 +27,7 @@ public static partial class UpdateChecker
     public static string ReleasesPage => $"https://github.com/{Repository}/releases";
 
     /// <summary>The running version (set from Directory.Build.props, or from the tag by the release workflow).</summary>
-    public static Version CurrentVersion { get; } = Normalize(typeof(UpdateChecker).Assembly.GetName().Version ?? new Version(0, 0));
+    public static AppVersion CurrentVersion => AppVersion.Current;
 
     private static readonly HttpClient Http = CreateClient();
 
@@ -38,23 +38,25 @@ public static partial class UpdateChecker
         return http;
     }
 
-    public static async Task<UpdateCheckResult> CheckAsync(CancellationToken ct = default)
+    /// <param name="includePrereleases">Offer alpha/beta releases too (the "early versions" opt-in in Settings).</param>
+    public static async Task<UpdateCheckResult> CheckAsync(bool includePrereleases, CancellationToken ct = default)
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Repository}/releases/latest");
+            // The list, not /releases/latest: "latest" never returns pre-releases, and alphas are pre-releases.
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Repository}/releases?per_page=30");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
             using var response = await Http.SendAsync(request, ct);
             if (response.StatusCode == HttpStatusCode.NotFound)
-                return new(UpdateState.NoReleases, null, "No releases have been published yet.");
+                return new(UpdateState.Failed, null, "GitHub couldn't find RigScope's releases. Open the releases page to check.");
             if (response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests)
                 return new(UpdateState.Failed, null, "GitHub is limiting requests right now. Try again in an hour, or open the releases page.");
             if (!response.IsSuccessStatusCode)
                 return new(UpdateState.Failed, null, $"GitHub answered {(int)response.StatusCode}. Try again later, or open the releases page.");
 
-            var latest = ParseRelease(await response.Content.ReadAsStringAsync(ct));
+            var latest = PickLatest(await response.Content.ReadAsStringAsync(ct), includePrereleases);
             if (latest is null)
-                return new(UpdateState.Failed, null, "Couldn't read the version of the latest release. Open the releases page to check.");
+                return new(UpdateState.NoReleases, null, "No releases have been published yet.");
             return latest.Version > CurrentVersion
                 ? new(UpdateState.Available, latest, $"RigScope {latest.Version} is available. You have {CurrentVersion}.")
                 : new(UpdateState.UpToDate, latest, $"You have the latest version ({CurrentVersion}).");
@@ -117,13 +119,35 @@ public static partial class UpdateChecker
         }
     }
 
-    /// <summary>Reads the fields RigScope needs from a GitHub "release" JSON object. Null if the tag isn't a version.</summary>
+    /// <summary>
+    /// The newest published release in a GitHub "list releases" response. Drafts are skipped; pre-releases count only
+    /// when <paramref name="includePrereleases"/> is set (people running an alpha get alpha updates, others don't).
+    /// </summary>
+    internal static ReleaseInfo? PickLatest(string json, bool includePrereleases)
+    {
+        using var doc = JsonDocument.Parse(json);
+        if (doc.RootElement.ValueKind != JsonValueKind.Array) return null;
+        return doc.RootElement.EnumerateArray()
+            .Where(r => !(r.TryGetProperty("draft", out var d) && d.ValueKind == JsonValueKind.True))
+            .Select(ParseRelease)
+            .OfType<ReleaseInfo>()
+            .Where(r => includePrereleases || !r.IsPrerelease)
+            .OrderByDescending(r => r.Version)
+            .FirstOrDefault();
+    }
+
     internal static ReleaseInfo? ParseRelease(string json)
     {
         using var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
+        return ParseRelease(doc.RootElement);
+    }
+
+    /// <summary>Reads the fields RigScope needs from a GitHub "release" JSON object. Null if the tag isn't a version.</summary>
+    internal static ReleaseInfo? ParseRelease(JsonElement root)
+    {
         var tag = Str(root, "tag_name") ?? "";
-        if (!TryParseVersion(tag, out var version)) return null;
+        if (!AppVersion.TryParse(tag, out var version)) return null;
+        var prerelease = version.IsPrerelease || (root.TryGetProperty("prerelease", out var pre) && pre.ValueKind == JsonValueKind.True);
 
         string? exeUrl = null, checksumUrl = null;
         long exeSize = 0;
@@ -141,29 +165,15 @@ public static partial class UpdateChecker
             }
 
         DateTimeOffset? published = root.TryGetProperty("published_at", out var p) && p.ValueKind == JsonValueKind.String && p.TryGetDateTimeOffset(out var dt) ? dt : null;
-        return new ReleaseInfo(version, tag, Str(root, "body") ?? "", Str(root, "html_url") ?? ReleasesPage, published,
+        return new ReleaseInfo(version, tag, prerelease, Str(root, "body") ?? "", Str(root, "html_url") ?? ReleasesPage, published,
             OnlyHttps(exeUrl), exeSize, OnlyHttps(checksumUrl));
 
         static string? Str(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
         static string? OnlyHttps(string? url) => url?.StartsWith("https://", StringComparison.OrdinalIgnoreCase) == true ? url : null;
     }
 
-    /// <summary>"v1.2", "1.2.3", "v1.2.3-beta+abc" → 1.2.0 / 1.2.3 / 1.2.3. Pre-release suffixes are ignored.</summary>
-    public static bool TryParseVersion(string tag, out Version version)
-    {
-        var s = tag.Trim().TrimStart('v', 'V');
-        var cut = s.IndexOfAny(['-', '+', ' ']);
-        if (cut >= 0) s = s[..cut];
-        if (!s.Contains('.')) s += ".0";
-        if (Version.TryParse(s, out var v)) { version = Normalize(v); return true; }
-        version = new Version(0, 0, 0);
-        return false;
-    }
-
     /// <summary>The 64-hex-digit hash in a "HASH  RigScope.exe" checksum file, or null.</summary>
     internal static string? ParseChecksum(string text) => Sha256Hex().Match(text) is { Success: true } m ? m.Value.ToUpperInvariant() : null;
-
-    private static Version Normalize(Version v) => new(v.Major, Math.Max(v.Minor, 0), Math.Max(v.Build, 0));
 
     [GeneratedRegex(@"\b[0-9a-fA-F]{64}\b")]
     private static partial Regex Sha256Hex();

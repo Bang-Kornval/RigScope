@@ -7,6 +7,14 @@ public sealed record UserSettings
 {
     /// <summary>Ask GitHub for the latest release when RigScope starts. Nothing is downloaded without the user.</summary>
     public bool CheckForUpdatesOnStartup { get; init; } = true;
+
+    /// <summary>
+    /// Opt in to alpha/beta releases. Null until the user chooses: then it follows the running build
+    /// (someone running a beta keeps getting betas, everyone else gets stable releases only).
+    /// </summary>
+    public bool? EarlyVersions { get; init; }
+
+    public bool WantsEarlyVersions(bool runningPrerelease) => EarlyVersions ?? runningPrerelease;
 }
 
 /// <summary>Stores <see cref="UserSettings"/> as JSON in %LOCALAPPDATA%\RigScope\settings.json.</summary>

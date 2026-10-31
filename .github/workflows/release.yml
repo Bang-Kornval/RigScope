@@ -1,6 +1,7 @@
 name: Release
 
-# Push a tag like v0.1.0 to build RigScope.exe and attach it to a GitHub release with its SHA-256.
+# Push a tag like v0.1.0 (or v0.2.0-beta.1 for a pre-release) to build RigScope.exe and attach it to a GitHub
+# release with its SHA-256.
 on:
   push:
     tags: ['v*']
@@ -23,7 +24,7 @@ jobs:
         run: |
           $version = '${{ github.ref_name }}'.TrimStart('v')
           $changelog = Get-Content CHANGELOG.md -Raw
-          $m = [regex]::Match($changelog, "(?ms)^## \[?$([regex]::Escape($version))\]?[^\n]*\n(.*?)(?=^## |\z)")
+          $m = [regex]::Match($changelog, "(?ms)^## \[?$([regex]::Escape($version))(?=[\]\s])[^\n]*\n(.*?)(?=^## |\z)")
           if (-not $m.Success -or -not $m.Groups[1].Value.Trim()) { throw "CHANGELOG.md has no section for $version" }
           $m.Groups[1].Value.Trim() | Set-Content notes.md
           "VERSION=$version" >> $env:GITHUB_ENV
@@ -50,3 +51,6 @@ jobs:
             publish/RigScope.exe
             publish/RigScope.exe.sha256
           body_path: body.md
+          name: RigScope ${{ env.VERSION }}
+          # v0.2.0-beta.1, v0.1.0-alpha.1 … → GitHub pre-release; only beta testers are offered it in the app.
+          prerelease: ${{ contains(github.ref_name, '-') }}

@@ -4,31 +4,66 @@ namespace RigScope.Core.Tests;
 
 public class UpdateTests
 {
+    private static AppVersion V(string s) => AppVersion.TryParse(s, out var v) ? v : throw new ArgumentException(s);
+
     [Theory]
     [InlineData("v1.2.3", "1.2.3")]
     [InlineData("1.2", "1.2.0")]
     [InlineData("v2", "2.0.0")]
-    [InlineData("v0.3.0-beta.1", "0.3.0")]
+    [InlineData("v0.3.0-beta.1", "0.3.0-beta.1")]
     [InlineData("V1.0.0+abc123", "1.0.0")]
-    public void Parses_release_tags(string tag, string expected)
-    {
-        Assert.True(UpdateChecker.TryParseVersion(tag, out var v));
-        Assert.Equal(Version.Parse(expected), v);
-    }
+    [InlineData("0.1.0-alpha.1+5f3e2a", "0.1.0-alpha.1")]
+    public void Parses_release_tags(string tag, string expected) => Assert.Equal(expected, V(tag).ToString());
 
     [Theory]
     [InlineData("")]
     [InlineData("latest")]
     [InlineData("vNext")]
-    public void Rejects_tags_that_are_not_versions(string tag) => Assert.False(UpdateChecker.TryParseVersion(tag, out _));
+    public void Rejects_tags_that_are_not_versions(string tag) => Assert.False(AppVersion.TryParse(tag, out _));
+
+    [Theory]
+    [InlineData("v0.10.0", "v0.9.5")]
+    [InlineData("v0.1.0", "v0.1.0-beta")]
+    [InlineData("v0.1.0-beta", "v0.1.0-alpha.2")]
+    [InlineData("v0.1.0-alpha.10", "v0.1.0-alpha.2")]
+    [InlineData("v0.1.0-alpha.1", "v0.1.0-alpha")]
+    [InlineData("v0.2.0-alpha.1", "v0.1.0")]
+    public void Newer_release_compares_greater_than_older(string newer, string older)
+    {
+        Assert.True(V(newer) > V(older));
+        Assert.True(V(older) < V(newer));
+    }
 
     [Fact]
-    public void Newer_release_compares_greater_than_older()
+    public void Same_version_with_and_without_v_is_equal() => Assert.Equal(V("v0.1.0-alpha.1"), V("0.1.0-alpha.1"));
+
+    private const string ReleaseList = """
+    [
+      { "tag_name": "v0.3.0", "draft": true, "prerelease": false },
+      { "tag_name": "v0.2.0-beta.1", "prerelease": true },
+      { "tag_name": "v0.1.1", "prerelease": false },
+      { "tag_name": "v0.1.0", "prerelease": false },
+      { "tag_name": "nightly", "prerelease": true }
+    ]
+    """;
+
+    [Fact]
+    public void Stable_users_get_the_newest_stable_release_and_never_drafts() =>
+        Assert.Equal("0.1.1", UpdateChecker.PickLatest(ReleaseList, includePrereleases: false)?.Version.ToString());
+
+    [Fact]
+    public void Beta_testers_also_get_prereleases() =>
+        Assert.Equal("0.2.0-beta.1", UpdateChecker.PickLatest(ReleaseList, includePrereleases: true)?.Version.ToString());
+
+    [Fact]
+    public void Release_flagged_prerelease_on_github_counts_as_prerelease_even_without_a_suffix()
     {
-        UpdateChecker.TryParseVersion("v0.10.0", out var newer);
-        UpdateChecker.TryParseVersion("v0.9.5", out var older);
-        Assert.True(newer > older);
+        var r = UpdateChecker.PickLatest("""[ { "tag_name": "v0.4.0", "prerelease": true } ]""", includePrereleases: false);
+        Assert.Null(r);
     }
+
+    [Fact]
+    public void Empty_release_list_has_no_latest() => Assert.Null(UpdateChecker.PickLatest("[]", includePrereleases: true));
 
     [Fact]
     public void Reads_release_json_and_picks_exe_and_checksum()
@@ -48,7 +83,8 @@ public class UpdateTests
         """;
         var r = UpdateChecker.ParseRelease(json);
         Assert.NotNull(r);
-        Assert.Equal(new Version(0, 2, 0), r.Version);
+        Assert.Equal(V("0.2.0"), r.Version);
+        Assert.False(r.IsPrerelease);
         Assert.Equal("https://github.com/x/RigScope.exe", r.ExeUrl);
         Assert.Equal(65000000, r.ExeSize);
         Assert.Equal("https://github.com/x/RigScope.exe.sha256", r.ChecksumUrl);
@@ -115,7 +151,7 @@ public class UpdateTests
     {
         // The release workflow copies this section into the GitHub release notes, and Settings marks it "This version".
         var versions = Changelog.LoadBuiltIn()
-            .Select(e => UpdateChecker.TryParseVersion(e.Version, out var v) ? v : null);
+            .Select(e => AppVersion.TryParse(e.Version, out var v) ? v : null);
         Assert.Contains(UpdateChecker.CurrentVersion, versions);
     }
 }
@@ -149,4 +185,15 @@ public sealed class SettingsStoreTests : IDisposable
         File.WriteAllText(FilePath, "{ not json");
         Assert.True(new RigScope.Core.Settings.SettingsStore(FilePath).Load().CheckForUpdatesOnStartup);
     }
+}
+
+public class EarlyVersionsTests
+{
+    [Theory]
+    [InlineData(null, false, false)] // stable build, never chose: stable only
+    [InlineData(null, true, true)]   // running an alpha/beta, never chose: keep getting them
+    [InlineData(true, false, true)]  // opted in
+    [InlineData(false, true, false)] // opted out while on a beta
+    public void Early_versions_follow_the_users_choice_then_the_running_build(bool? choice, bool runningPrerelease, bool expected) =>
+        Assert.Equal(expected, new RigScope.Core.Settings.UserSettings { EarlyVersions = choice }.WantsEarlyVersions(runningPrerelease));
 }
