@@ -36,7 +36,7 @@ public class UpdateTests
         const string json = """
         {
           "tag_name": "v0.2.0",
-          "html_url": "https://github.com/Kornvalles/RigScope/releases/tag/v0.2.0",
+          "html_url": "https://github.com/Bang-Kornval/RigScope/releases/tag/v0.2.0",
           "published_at": "2026-11-05T12:00:00Z",
           "body": "### New\n- Faster storage scan",
           "assets": [

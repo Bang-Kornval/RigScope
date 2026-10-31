@@ -22,7 +22,7 @@ public sealed record DownloadResult(bool Ok, bool Verified, string Message);
 /// </summary>
 public static partial class UpdateChecker
 {
-    public const string Repository = "Kornvalles/RigScope";
+    public const string Repository = "Bang-Kornval/RigScope";
     public const string ExeAssetName = "RigScope.exe";
     public static string ReleasesPage => $"https://github.com/{Repository}/releases";
 
