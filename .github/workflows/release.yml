@@ -16,22 +16,37 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet test -c Release
-      - run: dotnet publish src/RigScope.App -c Release -r win-x64 -o publish
-      - name: Checksum
+      # The tag is the version: the app compares it with GitHub's latest release in Settings › Updates.
+      # CHANGELOG.md must have a section for it (it becomes the release notes and the app's "What's new").
+      - name: Version and notes
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          $changelog = Get-Content CHANGELOG.md -Raw
+          $m = [regex]::Match($changelog, "(?ms)^## \[?$([regex]::Escape($version))\]?[^\n]*\n(.*?)(?=^## |\z)")
+          if (-not $m.Success -or -not $m.Groups[1].Value.Trim()) { throw "CHANGELOG.md has no section for $version" }
+          $m.Groups[1].Value.Trim() | Set-Content notes.md
+          "VERSION=$version" >> $env:GITHUB_ENV
+      - run: dotnet test -c Release -p:Version=${{ env.VERSION }}
+      - run: dotnet publish src/RigScope.App -c Release -r win-x64 -o publish -p:Version=${{ env.VERSION }}
+      - name: Checksum and release body
         shell: pwsh
         run: |
           $hash = (Get-FileHash publish/RigScope.exe -Algorithm SHA256).Hash
           "$hash  RigScope.exe" | Set-Content publish/RigScope.exe.sha256
-          "SHA256=$hash" >> $env:GITHUB_ENV
+          $notes = Get-Content notes.md -Raw
+          @"
+          $notes
+
+          ---
+
+          SHA-256 of RigScope.exe: ``$hash``
+
+          The exe isn't code-signed yet, so SmartScreen may warn. Click **More info › Run anyway**, or build from source.
+          "@ | Set-Content body.md
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             publish/RigScope.exe
             publish/RigScope.exe.sha256
-          body: |
-            RigScope ${{ github.ref_name }}. Read-only competitive FPS check for Windows.
-
-            SHA-256 of RigScope.exe: `${{ env.SHA256 }}`
-
-            The exe isn't code-signed yet, so SmartScreen may warn. Click **More info › Run anyway**, or build from source.
+          body_path: body.md

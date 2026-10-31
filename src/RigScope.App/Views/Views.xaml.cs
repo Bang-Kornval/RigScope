@@ -45,3 +45,8 @@ public partial class ReportView : UserControl
 {
     public ReportView() => InitializeComponent();
 }
+
+public partial class SettingsView : UserControl
+{
+    public SettingsView() => InitializeComponent();
+}

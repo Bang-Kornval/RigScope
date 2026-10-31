@@ -1,0 +1,128 @@
+<UserControl x:Class="RigScope.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <!-- One release: its groups and bullets. Used for the update notes and for What's new. -->
+        <DataTemplate x:Key="ChangelogSections">
+            <ItemsControl ItemsSource="{Binding}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0,4,0,4">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,0,0,2"
+                                       Visibility="{Binding Title, Converter={StaticResource TextVisible}}" />
+                            <ItemsControl ItemsSource="{Binding Items}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Margin="0,2">
+                                            <TextBlock DockPanel.Dock="Left" Text="•" Margin="2,0,8,0" Opacity="0.7" />
+                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
+        <StackPanel MaxWidth="900" HorizontalAlignment="Left">
+            <TextBlock Text="Settings" Style="{StaticResource PageTitle}" />
+            <TextBlock Style="{StaticResource PageSubtitle}" Text="{Binding CurrentVersion, StringFormat='RigScope {0}. Read-only: nothing here changes your PC.'}" />
+
+            <!-- Check again -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Check again" Style="{StaticResource SectionTitle}" />
+                    <TextBlock TextWrapping="Wrap" Opacity="0.8"
+                               Text="Changed a setting, updated a driver or installed a game? Read your PC again to see the new results." />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Content="Check again" Command="{Binding Main.LoadCommand}" Style="{DynamicResource AccentButtonStyle}"
+                                IsEnabled="{Binding Main.IsLoading, Converter={StaticResource Not}, Mode=OneWay}" />
+                        <TextBlock Text="{Binding Main.StatusText}" VerticalAlignment="Center" Margin="12,0,0,0" Opacity="0.7" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Updates -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Updates" Style="{StaticResource SectionTitle}" />
+                    <TextBlock TextWrapping="Wrap" Opacity="0.8"
+                               Text="RigScope only contacts GitHub when you press the button. Nothing is installed for you: you choose where the new version is saved, RigScope checks it against the published SHA-256, and you start it yourself." />
+                    <WrapPanel Margin="0,12,0,0">
+                        <Button Content="Check for updates" Command="{Binding CheckForUpdatesCommand}" Margin="0,0,8,6"
+                                IsEnabled="{Binding IsChecking, Converter={StaticResource Not}, Mode=OneWay}" />
+                        <Button Content="All releases" Command="{Binding OpenReleasePageCommand}" Margin="0,0,8,6" />
+                    </WrapPanel>
+                    <TextBlock Text="{Binding UpdateMessage}" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Visibility="{Binding UpdateMessage, Converter={StaticResource TextVisible}}" />
+
+                    <!-- A newer version -->
+                    <Border Visibility="{Binding Available, Converter={StaticResource NotNullVisible}}" Margin="0,12,0,0" Padding="12"
+                            CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource AccentScopeBrush}">
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold" FontSize="15">
+                                <Run Text="What's new in" /><Run Text="{Binding Available.Version, Mode=OneWay, StringFormat=' {0}'}" />
+                            </TextBlock>
+                            <TextBlock Text="{Binding Available.PublishedAt, StringFormat='Released {0:d MMM yyyy}'}" Opacity="0.7" FontSize="12" Margin="0,0,0,6" />
+                            <ContentControl Content="{Binding AvailableNotes}" ContentTemplate="{StaticResource ChangelogSections}" Focusable="False" />
+                            <TextBlock Text="See the release page for details." Opacity="0.7" Margin="0,4,0,0"
+                                       Visibility="{Binding AvailableNotes.Count, Converter={StaticResource ZeroVisible}}" />
+                            <WrapPanel Margin="0,12,0,0">
+                                <Button Content="Download…" Command="{Binding DownloadCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,8,6"
+                                        IsEnabled="{Binding IsDownloading, Converter={StaticResource Not}, Mode=OneWay}" />
+                                <Button Content="Open release page" Command="{Binding OpenReleasePageCommand}" Margin="0,0,8,6" />
+                            </WrapPanel>
+                            <ProgressBar Value="{Binding DownloadProgress, Mode=OneWay}" Maximum="1" Height="4" Margin="0,6,0,0"
+                                         Visibility="{Binding IsDownloading, Converter={StaticResource Visible}}" />
+                            <TextBlock Text="{Binding DownloadMessage}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                       Visibility="{Binding DownloadMessage, Converter={StaticResource TextVisible}}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DownloadOk}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource StatusGoodBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <Button Content="Show in folder" Command="{Binding ShowDownloadCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                    Visibility="{Binding DownloadedPath, Converter={StaticResource NotNullVisible}}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- What's new -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="What's new" Style="{StaticResource SectionTitle}" />
+                    <ItemsControl ItemsSource="{Binding WhatsNew}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,4,0,12">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding DateText}" Opacity="0.7" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                        <Border Style="{StaticResource Pill}" Background="{StaticResource StatusGoodBrush}" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                Visibility="{Binding IsCurrent, Converter={StaticResource Visible}}">
+                                            <TextBlock Text="This version" Style="{StaticResource PillText}" />
+                                        </Border>
+                                    </StackPanel>
+                                    <ContentControl Content="{Binding Entry.Sections}" ContentTemplate="{StaticResource ChangelogSections}" Focusable="False" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock>
+                        <Hyperlink Command="{Binding OpenRepositoryCommand}">RigScope on GitHub</Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

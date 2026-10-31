@@ -30,6 +30,8 @@ CI (`.github/workflows/ci.yml`) runs build + test on windows-latest. Pushing a `
 - New advice: add a rule to `advice-pack.json`, add a scenario assertion in `RuleTests.cs`, run tests. Only the last outcome of a rule may lack `when`.
 - New probe data: extend `SystemSnapshot`, fill it in a probe, give the fake PCs values (including "missing").
 - UI changes: launch the app and look at it; the Fluent theme follows Windows light/dark.
+- User-visible change: add a bullet to `CHANGELOG.md` (embedded; shown in Settings › What's new). A `v*` tag needs a matching `## [x.y.z]` section and that version in `Directory.Build.props`, or the release fails.
+- Network: the only network call is the user-pressed update check in `Core/Updates/UpdateChecker.cs`. Keep it that way.
 - Match surrounding code style and comment density. Copy is plain and direct, written for gamers, no hype.
 
 ## Git
