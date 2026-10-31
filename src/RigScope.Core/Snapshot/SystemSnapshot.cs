@@ -25,6 +25,12 @@ public sealed class SystemSnapshot
     public SecurityInfo Security { get; set; } = new();
     public WindowsGamingInfo Windows { get; set; } = new();
     public List<KnownAppInfo> Apps { get; set; } = [];
+    /// <summary>Mice, keyboards, headsets and lighting controllers, from Windows' list of plugged-in devices.</summary>
+    public List<PeripheralInfo> Peripherals { get; set; } = [];
+    /// <summary>Suite features that are set up on this PC, e.g. SteelSeries Sonar's virtual audio devices.</summary>
+    public List<SuiteFeatureInUse> SuiteFeaturesInUse { get; set; } = [];
+    /// <summary>Each peripheral suite that runs, starts with Windows or has a device here. Derived from the lists above.</summary>
+    public List<PeripheralSuiteInfo> Suites { get; set; } = [];
     public List<NetworkAdapterInfo> Network { get; set; } = [];
     public List<DriveInfoSnapshot> Drives { get; set; } = [];
     public List<InstalledGame> Games { get; set; } = [];
@@ -176,6 +182,78 @@ public sealed class KnownAppInfo
     public int ProcessCount { get; set; }
     public double CpuSeconds { get; set; }
     public long MemoryBytes { get; set; }
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter<PeripheralKind>))]
+public enum PeripheralKind { Other, Mouse, Keyboard, Headset, Lighting, Receiver }
+
+/// <summary>Whether a device keeps its settings (DPI, polling rate, actuation, lighting) without its suite running.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<OnboardMemory>))]
+public enum OnboardMemory { Unknown, Yes, No }
+
+/// <summary>
+/// One peripheral, grouped by USB vendor and product id. Facts about the model come from advice/peripherals.json;
+/// RigScope never talks to the device itself. No serial numbers or device instance ids are stored.
+/// </summary>
+public sealed class PeripheralInfo
+{
+    public string Vendor { get; set; } = "";
+    /// <summary>USB vendor id in hex, e.g. 046D.</summary>
+    public string VendorId { get; set; } = "";
+    public string ProductId { get; set; } = "";
+    /// <summary>The most specific name Windows has for it, e.g. "PRO 2 LIGHTSPEED". Empty if Windows only has generic names.</summary>
+    public string Name { get; set; } = "";
+    /// <summary>Name to show: the catalogue's model name, or vendor + Windows name.</summary>
+    public string DisplayName { get; set; } = "";
+    public PeripheralKind Kind { get; set; }
+    /// <summary>Connected through a wireless receiver or dongle.</summary>
+    public bool ViaReceiver { get; set; }
+    public bool Bluetooth { get; set; }
+    /// <summary>Windows lists it as a Dynamic Lighting (LampArray) device.</summary>
+    public bool DynamicLighting { get; set; }
+    /// <summary>Catalogue entry it matched: a device family id, or "vendor:&lt;id&gt;" for a vendor-level match. Empty = unknown vendor.</summary>
+    public string CatalogueId { get; set; } = "";
+    /// <summary>True when a device family matched, false for a vendor-level fallback.</summary>
+    public bool KnownModel { get; set; }
+    /// <summary>Known-app id of the vendor's suite (ghub, steelseries…). Empty = no suite.</summary>
+    public string Suite { get; set; } = "";
+    public string SuiteName { get; set; } = "";
+    public OnboardMemory OnboardMemory { get; set; }
+    /// <summary>Features of this device that only work while the suite runs.</summary>
+    public List<string> FeaturesNeedingSuite { get; set; } = [];
+    public string Notes { get; set; } = "";
+}
+
+/// <summary>A suite feature RigScope found set up on this PC.</summary>
+public sealed class SuiteFeatureInUse
+{
+    public string Suite { get; set; } = "";
+    public string Feature { get; set; } = "";
+    /// <summary>What RigScope saw, e.g. "SteelSeries Sonar - Gaming (SteelSeries Sonar Virtual Audio Device)".</summary>
+    public string Seen { get; set; } = "";
+}
+
+/// <summary>A peripheral suite and whether the devices and features on this PC need it running all the time.</summary>
+public sealed class PeripheralSuiteInfo
+{
+    /// <summary>Known-app id, e.g. ghub.</summary>
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public bool Running { get; set; }
+    public bool StartsWithWindows { get; set; }
+    public bool Active => Running || StartsWithWindows;
+    /// <summary>Display names of the connected devices that belong to this suite.</summary>
+    public List<string> Devices { get; set; } = [];
+    /// <summary>true = a device or feature needs it running; false = the devices keep their settings onboard; null = can't tell.</summary>
+    public bool? NeededForAlwaysOn { get; set; }
+    /// <summary>"true", "false" or "unknown", for advice-pack filters such as suites[needed=false].</summary>
+    public string Needed => NeededForAlwaysOn switch { true => "true", false => "false", null => "unknown" };
+    public List<string> Reasons { get; set; } = [];
+    public string Reason => string.Join("; ", Reasons);
+    /// <summary>Device features that only work while the suite runs. Shown as "keep it if you use…".</summary>
+    public List<string> OnlyIfYouUse { get; set; } = [];
+    /// <summary>Other things the suite does that RigScope can't see (fan control, RAM lighting…).</summary>
+    public string Notes { get; set; } = "";
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<AdapterKind>))]

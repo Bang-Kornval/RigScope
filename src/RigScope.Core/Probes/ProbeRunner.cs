@@ -20,11 +20,11 @@ public static class ProbeRunner
     [
         new OsProbe(), new CpuProbe(), new MemoryProbe(), new FirmwareProbe(), new SecurityProbe(),
         new GpuProbe(), new DisplayProbe(), new WindowsGamingProbe(), new KnownAppsProbe(),
-        new NetworkProbe(), new DriveProbe(), new GamesProbe(), new Cs2Probe(),
+        new NetworkProbe(), new DriveProbe(), new PeripheralProbe(), new GamesProbe(), new Cs2Probe(), new PeripheralSuitesProbe(),
     ];
 
     /// <summary>Runs every probe. Probes fill separate parts of the snapshot, so they run in parallel;
-    /// the games and CS2 probes run last because they read what earlier probes found.</summary>
+    /// the games, CS2 and peripheral-suite probes run last because they read what earlier probes found.</summary>
     public static async Task<SystemSnapshot> CaptureAsync(IReadOnlyList<IProbe>? probes = null, IProgress<string>? progress = null)
     {
         probes ??= DefaultProbes();
@@ -33,7 +33,7 @@ public static class ProbeRunner
             AppVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "",
             IsElevated = IsElevated(),
         };
-        var late = probes.Where(p => p is GamesProbe or Cs2Probe).ToList();
+        var late = probes.Where(p => p is GamesProbe or Cs2Probe or PeripheralSuitesProbe).ToList();
         var early = probes.Except(late).ToList();
 
         await Task.WhenAll(early.Select(p => Task.Run(() => RunOne(p, snapshot, progress))));

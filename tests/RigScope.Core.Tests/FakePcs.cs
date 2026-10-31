@@ -1,3 +1,4 @@
+using RigScope.Core.Peripherals;
 using RigScope.Core.Snapshot;
 
 namespace RigScope.Core.Tests;
@@ -21,8 +22,8 @@ public static class FakePcs
 
     public static SystemSnapshot ByName(string name) => Named().First(p => p.Name == name).Build();
 
-    /// <summary>A typical mid-range esports desktop: 11th-gen Intel, RTX card, 165 Hz, CS2 installed, a few RGB suites.</summary>
-    public static SystemSnapshot IntelNvidiaDesktop() => new()
+    /// <summary>A typical mid-range esports desktop: 11th-gen Intel, RTX card, 165 Hz, CS2 installed, G HUB and SteelSeries GG with Sonar.</summary>
+    public static SystemSnapshot IntelNvidiaDesktop() => WithPeripherals(new()
     {
         Os = new OsInfo { ProductName = "Windows 11 Home", DisplayVersion = "26H2", Build = 26300 },
         Cpu = new CpuInfo { Vendor = HardwareVendor.Intel, Name = "11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz", Cores = 8, Threads = 16 },
@@ -69,10 +70,18 @@ public static class FakePcs
             ["videocfg_dynamic_shadows"] = "1", ["videocfg_fsr_detail"] = "0", ["defaultres"] = "1280", ["defaultresheight"] = "1024",
             ["refreshrate_numerator"] = "164999", ["refreshrate_denominator"] = "1000",
         }, launchOptions: "+fps_max 0 -nojoy +exec autoexec"),
-    };
+    },
+    [
+        new(@"USB\VID_046D&PID_C543\1", "PRO 2 LIGHTSPEED", "USB"),
+        new(@"USB\VID_046D&PID_C543&LAMPARRAY\1_SLOT01", "LIGHTSPEED Receiver"),
+        new(@"HID\VID_046D&PID_C543&MI_01&COL01\1", "HID-compliant mouse", "Mouse"),
+        new(@"USB\VID_1038&PID_1614&MI_00\1", "SteelSeries Apex Pro TKL", "HIDClass"),
+        new(@"USB\VID_1038&PID_12E0&MI_00\1", "Arctis Nova Pro Wireless", "MEDIA"),
+        new(@"SWD\MMDEVAPI\{0.0.0.00000000}.{1}", "SteelSeries Sonar - Gaming (SteelSeries Sonar Virtual Audio Device)", "AudioEndpoint"),
+    ]);
 
-    /// <summary>AMD dual-CCD X3D with a Radeon card, CS2 on a hard drive, RAM without EXPO, 60 Hz by mistake.</summary>
-    public static SystemSnapshot AmdX3dRadeon() => new()
+    /// <summary>AMD dual-CCD X3D with a Radeon card, CS2 on a hard drive, RAM without EXPO, 60 Hz by mistake, iCUE with a Corsair keyboard RigScope doesn't know.</summary>
+    public static SystemSnapshot AmdX3dRadeon() => WithPeripherals(new()
     {
         Os = new OsInfo { ProductName = "Windows 11 Pro", Build = 26100 },
         Cpu = new CpuInfo { Vendor = HardwareVendor.Amd, Name = "AMD Ryzen 9 7950X3D 16-Core Processor", Cores = 16, Threads = 32, IsX3D = true },
@@ -100,10 +109,14 @@ public static class FakePcs
             ["fullscreen"] = "0", ["mat_vsync"] = "1", ["msaa_samples"] = "8", ["videocfg_dynamic_shadows"] = "0", ["videocfg_fsr_detail"] = "2",
             ["refreshrate_numerator"] = "60000", ["refreshrate_denominator"] = "1000", ["r_player_visibility_mode"] = "0",
         }, launchOptions: "-high -threads 16", convars: new() { ["cl_net_buffer_ticks"] = "2" }),
-    };
+    },
+    [
+        new(@"USB\VID_1B1C&PID_FFF0\1", "USB Composite Device", "USB"),
+        new(@"USB\VID_1B1C&PID_FFF0&MI_00\1", "CORSAIR Test Keyboard", "HIDClass"),
+    ]);
 
-    /// <summary>Intel hybrid laptop on battery, single RAM stick, Windows 10, NVIDIA laptop GPU, no CS2 config yet.</summary>
-    public static SystemSnapshot IntelHybridLaptopOnBattery() => new()
+    /// <summary>Intel hybrid laptop on battery, single RAM stick, Windows 10, NVIDIA laptop GPU, no CS2 config yet, a mouse from a vendor RigScope doesn't know.</summary>
+    public static SystemSnapshot IntelHybridLaptopOnBattery() => WithPeripherals(new()
     {
         Os = new OsInfo { ProductName = "Windows 10 Home", Build = 19045 },
         Cpu = new CpuInfo { Vendor = HardwareVendor.Intel, Name = "13th Gen Intel(R) Core(TM) i7-13700H", Cores = 14, Threads = 20, IsHybrid = true, PerformanceCores = 6, EfficiencyCores = 8 },
@@ -119,7 +132,11 @@ public static class FakePcs
         Network = [new NetworkAdapterInfo { Name = "Wi-Fi", Description = "Intel(R) Wi-Fi 6E AX211", Kind = AdapterKind.Wifi, IsUp = true, IsDefaultRoute = true }],
         Drives = [new DriveInfoSnapshot { Letter = "C:", TotalBytes = 512L << 30, FreeBytes = 200L << 30, MediaType = "SSD", IsSystem = true }],
         Games = [new InstalledGame { Id = "valorant", Name = "VALORANT", Launcher = "Riot", InstallPath = @"C:\Riot Games\VALORANT\live", IsCompetitive = true }],
-    };
+    },
+    [
+        new(@"USB\VID_FFFE&PID_0001\1", "Contoso Travel Mouse", "USB", "Contoso"),
+        new(@"HID\VID_FFFE&PID_0001\1", "HID-compliant mouse", "Mouse"),
+    ]);
 
     /// <summary>Very little detected: Wi-Fi, one GPU with an unknown driver date, no games.</summary>
     public static SystemSnapshot WifiNoGames() => new()
@@ -128,6 +145,16 @@ public static class FakePcs
         Gpus = [new GpuInfo { Vendor = HardwareVendor.Nvidia, Name = "NVIDIA GeForce GTX 1660" }],
         Network = [new NetworkAdapterInfo { Name = "Wi-Fi", Kind = AdapterKind.Wifi, IsUp = true, IsDefaultRoute = true }],
     };
+
+    /// <summary>Fills peripherals and suites the way the probes do, from device-list entries.</summary>
+    private static SystemSnapshot WithPeripherals(SystemSnapshot s, PnpDevice[] devices)
+    {
+        var catalogue = PeripheralCatalogue.LoadBuiltIn();
+        s.Peripherals = catalogue.Resolve(PeripheralDetection.Group(devices));
+        s.SuiteFeaturesInUse = catalogue.DetectFeatures(devices);
+        s.Suites = catalogue.Summarize(s.Peripherals, s.Apps, s.SuiteFeaturesInUse);
+        return s;
+    }
 
     private static MemoryModule Module(int gb, int spd, int configured, int rated) =>
         new() { CapacityBytes = (long)gb << 30, SpdMts = spd, ConfiguredMts = configured, RatedMts = rated };

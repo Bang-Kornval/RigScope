@@ -44,6 +44,26 @@ public class ReportTests
     }
 
     [Fact]
+    public void Peripheral_section_lists_devices_and_suites_without_device_ids()
+    {
+        var pc = FakePcs.IntelNvidiaDesktop();
+        var md = ReportBuilder.Build(pc, Engine.Evaluate(pc, null), null);
+        Assert.Contains("**Peripherals**", md);
+        Assert.Contains("Logitech PRO 2 LIGHTSPEED (mouse, via receiver) · Logitech G HUB · settings on the device: yes", md);
+        Assert.Contains("- Logitech G HUB: running, starts with Windows → not needed all the time", md);
+        Assert.Contains("- SteelSeries GG: running, starts with Windows → keep it running", md);
+        Assert.DoesNotContain("VID_", md);
+        Assert.DoesNotContain(@"USB\", md);
+    }
+
+    [Fact]
+    public void Peripheral_section_is_left_out_when_there_are_none()
+    {
+        var pc = FakePcs.WifiNoGames();
+        Assert.DoesNotContain("Peripherals", ReportBuilder.Build(pc, Engine.Evaluate(pc, null), null));
+    }
+
+    [Fact]
     public void Redaction_removes_user_paths_ids_and_emails()
     {
         var pc = FakePcs.IntelNvidiaDesktop();
